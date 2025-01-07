@@ -93,7 +93,7 @@ class ControlScreenState extends State<ControlScreen> {
                 buildControlCard('Проветривание', 'ventilation', Icons.air),
                 buildControlCard('Полив грядки 1', 'watering1', Icons.opacity),
                 buildControlCard('Полив грядки 2', 'watering2', Icons.opacity),
-                buildControlCard('Освещение', 'lighting', Icons.lightbulb),
+                buildControlCard('Освещение', 'lighting', Icons.light_sharp),
               ],
             ),
           ),
