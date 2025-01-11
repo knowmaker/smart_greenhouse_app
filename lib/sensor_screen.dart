@@ -24,15 +24,31 @@ class SensorScreenState extends State<SensorScreen> {
   @override
   void initState() {
     super.initState();
+    _loadLastUpdate();
     fetchSensorData();
   }
 
-  Future<void> fetchSensorData() async {
+    Future<void> _loadLastUpdate() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      lastUpdate = prefs.getString('last_sensor_update') ?? "Никогда";
+    });
+  }
+
+  Future<void> _saveLastUpdate(String date) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_sensor_update', date);
+  }
+
+  Future<void> fetchSensorData({bool manualRefresh = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
     if (token == null || token.isEmpty) {
-      _showAuthDialog();
+      print(manualRefresh);
+      if (manualRefresh) {
+        _showAuthDialog();
+      }
       return;
     }
 
@@ -76,6 +92,7 @@ class SensorScreenState extends State<SensorScreen> {
           final now = DateTime.now();
           lastUpdate =
               "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+          _saveLastUpdate(lastUpdate);
         });
       } else {
         print('Failed to load sensor data: ${response.statusCode}');
@@ -108,7 +125,7 @@ class SensorScreenState extends State<SensorScreen> {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: fetchSensorData,
+      onRefresh: () => fetchSensorData(manualRefresh: true),
       color: Colors.purple,
       child: Column(
         children: [
