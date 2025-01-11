@@ -76,7 +76,7 @@ class ControlScreenState extends State<ControlScreen> {
               case 4:
                 continue;
               case 5:
-                controlState['ligting'] = state ?? false;
+                controlState['lighting'] = state ?? false;
             }
           }
 
