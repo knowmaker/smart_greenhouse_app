@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -6,65 +8,93 @@ class LoginScreen extends StatefulWidget {
 }
 
 class LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _phoneNumberController = TextEditingController();
 
   bool _isLoading = false;
-  bool _isRegistering = false;  // Флаг для переключения между входом и регистрацией
+  bool _isRegistering = false;
 
-  // Пример отправки запроса
   Future<void> _submit() async {
     setState(() {
       _isLoading = true;
     });
 
-    // Имитация запроса на сервер
-    await Future.delayed(Duration(seconds: 2));
-
-    if (!_isRegistering) {
-      // Логика для авторизации (GET запрос для входа)
-      if (_usernameController.text == 'admin' && _passwordController.text == '1234') {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Успешный вход!')),
-          );
-          Navigator.pop(context); // Возвращаемся назад после успешного входа
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Неверный логин или пароль')),
-          );
-        }
-      }
+    if (_isRegistering) {
+      // Регистрация
+      await _register();
     } else {
-      // Логика для регистрации (GET запрос для регистрации)
-      if (_firstNameController.text.isNotEmpty &&
-          _lastNameController.text.isNotEmpty &&
-          _phoneNumberController.text.isNotEmpty &&
-          _usernameController.text.isNotEmpty &&
-          _passwordController.text.isNotEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Регистрация успешна!')),
-          );
-          Navigator.pop(context); // Возвращаемся назад после успешной регистрации
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Пожалуйста, заполните все поля')),
-          );
-        }
-      }
+      // Авторизация
+      await _login();
     }
 
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Future<void> _login() async {
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/login');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': _emailController.text,
+        'password': _passwordController.text,
+      }),
+    );
+    print(response.statusCode);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final token = data['access_token'];
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Успешный вход!')),
+        );
+        // Сохраните токен, если это необходимо
+        Navigator.pop(context); // Возвращаемся после успешного входа
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка входа: ${response.statusCode}')),
+        );
+      }
+    }
+  }
+
+  Future<void> _register() async {
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': _emailController.text,
+        'password': _passwordController.text,
+        'last_name': _lastNameController.text,
+        'first_name': _firstNameController.text,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Регистрация успешна! Перейдите к авторизации.')),
+        );
+        setState(() {
+          _isRegistering = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка регистрации: ${response.statusCode}')),
+        );
+      }
+    }
   }
 
   @override
@@ -73,7 +103,7 @@ class LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: Text(_isRegistering ? 'Регистрация' : 'Авторизация'),
       ),
-      body: SingleChildScrollView(  // Оборачиваем все в SingleChildScrollView
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -85,18 +115,14 @@ class LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 20),
               if (_isRegistering) ...[
-                // Поля для регистрации
                 TextField(
                   controller: _firstNameController,
                   decoration: InputDecoration(
                     labelText: 'Имя',
                     border: OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black, width: 2.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green, width: 2.0),
-                    ),
+                    borderSide: BorderSide(color: Colors.black, width: 2.0),
+                  ),
                   ),
                 ),
                 SizedBox(height: 20),
@@ -106,40 +132,19 @@ class LoginScreenState extends State<LoginScreen> {
                     labelText: 'Фамилия',
                     border: OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black, width: 2.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green, width: 2.0),
-                    ),
+                    borderSide: BorderSide(color: Colors.black, width: 2.0),
                   ),
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: _phoneNumberController,
-                  decoration: InputDecoration(
-                    labelText: 'Номер телефона',
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black, width: 2.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green, width: 2.0),
-                    ),
                   ),
                 ),
                 SizedBox(height: 20),
               ],
-              // Поля для логина и пароля
               TextField(
-                controller: _usernameController,
+                controller: _emailController,
                 decoration: InputDecoration(
-                  labelText: 'Логин',
+                  labelText: 'Email',
                   border: OutlineInputBorder(),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.black, width: 2.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.green, width: 2.0),
                   ),
                 ),
               ),
@@ -151,9 +156,6 @@ class LoginScreenState extends State<LoginScreen> {
                   border: OutlineInputBorder(),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.black, width: 2.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.green, width: 2.0),
                   ),
                 ),
                 obscureText: true,
@@ -178,12 +180,13 @@ class LoginScreenState extends State<LoginScreen> {
               TextButton(
                 onPressed: () {
                   setState(() {
-                    _isRegistering = !_isRegistering; // Переключаем между входом и регистрацией
+                    _isRegistering = !_isRegistering;
                   });
                 },
                 child: Text(
-                  _isRegistering ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться',
-                  style: TextStyle(color: Colors.green),
+                  _isRegistering
+                      ? 'Уже есть аккаунт? Войти'
+                      : 'Нет аккаунта? Зарегистрироваться',
                 ),
               ),
             ],
