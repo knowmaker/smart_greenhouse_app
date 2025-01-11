@@ -28,7 +28,7 @@ class SensorScreenState extends State<SensorScreen> {
     fetchSensorData();
   }
 
-    Future<void> _loadLastUpdate() async {
+  Future<void> _loadLastUpdate() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       lastUpdate = prefs.getString('last_sensor_update') ?? "Никогда";
