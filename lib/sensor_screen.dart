@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SensorScreen extends StatefulWidget {
   @override
@@ -9,13 +10,13 @@ class SensorScreen extends StatefulWidget {
 
 class SensorScreenState extends State<SensorScreen> {
   Map<String, dynamic> sensorData = {
-    'waterT': 0,
     'airT': 0,
     'airH': 0,
     'soilM1': 0,
     'soilM2': 0,
-    'light': 0,
+    'waterT': 0,
     'level': 0,
+    'light': 0,
   };
 
   String lastUpdate = "Никогда";
@@ -27,22 +28,51 @@ class SensorScreenState extends State<SensorScreen> {
   }
 
   Future<void> fetchSensorData() async {
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/api/d/get');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    if (token == null || token.isEmpty) {
+      _showAuthDialog();
+      return;
+    }
+
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/sensor-readings/0000BFE7');
     try {
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final readings = data['latest_readings'] as List;
+
+        // Обновляем данные сенсоров, сопоставляя id_sensor с ожидаемыми показаниями
         setState(() {
-          sensorData = {
-            'waterT': data['wT'],
-            'airT': data['aT'],
-            'airH': data['aH'],
-            'soilM1': data['sM1'],
-            'soilM2': data['sM2'],
-            'light': data['l'],
-            'level': data['lev'],
-          };
-          // Обновляем дату последнего обновления
+          for (var reading in readings) {
+            final id = reading['id_sensor'];
+            final value = reading['value'];
+            switch (id) {
+              case 1:
+                sensorData['airT'] = value ?? 0;
+              case 2:
+                sensorData['airH'] = value ?? 0;
+              case 3:
+                sensorData['soilM1'] = value ?? 0;
+              case 4:
+                sensorData['soilM2'] = value ?? 0;
+              case 5:
+                sensorData['waterT'] = value ?? 0;
+              case 6:
+                sensorData['level'] = value ?? 0;
+              case 7:
+                sensorData['light'] = value ?? 0;
+
+            }
+          }
+
           final now = DateTime.now();
           lastUpdate =
               "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
@@ -53,6 +83,26 @@ class SensorScreenState extends State<SensorScreen> {
     } catch (e) {
       print('Error fetching sensor data: $e');
     }
+  }
+
+  void _showAuthDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Необходима авторизация'),
+          content: Text('Для получения данных сенсоров необходимо авторизоваться.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Просто скрываем окно
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -22,10 +23,8 @@ class LoginScreenState extends State<LoginScreen> {
     });
 
     if (_isRegistering) {
-      // Регистрация
       await _register();
     } else {
-      // Авторизация
       await _login();
     }
 
@@ -50,12 +49,14 @@ class LoginScreenState extends State<LoginScreen> {
       final data = json.decode(response.body);
       final token = data['access_token'];
 
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', token);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Успешный вход!')),
         );
-        // Сохраните токен, если это необходимо
-        Navigator.pop(context); // Возвращаемся после успешного входа
+        Navigator.pop(context);
       }
     } else {
       if (mounted) {
