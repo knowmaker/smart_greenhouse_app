@@ -42,7 +42,6 @@ class ControlScreenState extends State<ControlScreen> {
     final token = prefs.getString('access_token');
 
     if (token == null || token.isEmpty) {
-      print(manualRefresh);
       if (manualRefresh) {
         _showAuthDialog();
       }
@@ -64,20 +63,10 @@ class ControlScreenState extends State<ControlScreen> {
 
         setState(() {
           for (var deviceState in deviceStates) {
-            final id = deviceState['id_device'];
+            final label = deviceState['device_label'];
             final state = deviceState['state'];
-            switch (id) {
-              case 1:
-                controlState['ventilation'] = state ?? false;
-              case 2:
-                controlState['watering1'] = state ?? false;
-              case 3:
-                controlState['watering2'] = state ?? false;
-              case 4:
-                continue;
-              case 5:
-                controlState['lighting'] = state ?? false;
-            }
+
+            controlState[label] = state;
           }
 
           final now = DateTime.now();

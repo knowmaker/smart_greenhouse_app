@@ -43,7 +43,6 @@ class LoginScreenState extends State<LoginScreen> {
         'password': _passwordController.text,
       }),
     );
-    print(response.statusCode);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

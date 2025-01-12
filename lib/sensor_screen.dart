@@ -10,12 +10,12 @@ class SensorScreen extends StatefulWidget {
 
 class SensorScreenState extends State<SensorScreen> {
   Map<String, dynamic> sensorData = {
-    'airT': 0,
-    'airH': 0,
-    'soilM1': 0,
-    'soilM2': 0,
-    'waterT': 0,
-    'level': 0,
+    'airTemp': 0,
+    'airHum': 0,
+    'soilMoist1': 0,
+    'soilMoist2': 0,
+    'waterTemp': 0,
+    'waterLevel': 0,
     'light': 0,
   };
 
@@ -45,7 +45,6 @@ class SensorScreenState extends State<SensorScreen> {
     final token = prefs.getString('access_token');
 
     if (token == null || token.isEmpty) {
-      print(manualRefresh);
       if (manualRefresh) {
         _showAuthDialog();
       }
@@ -65,28 +64,12 @@ class SensorScreenState extends State<SensorScreen> {
         final data = jsonDecode(response.body);
         final readings = data['latest_readings'] as List;
 
-        // Обновляем данные сенсоров, сопоставляя id_sensor с ожидаемыми показаниями
         setState(() {
           for (var reading in readings) {
-            final id = reading['id_sensor'];
-            final value = reading['value'];
-            switch (id) {
-              case 1:
-                sensorData['airT'] = value ?? 0;
-              case 2:
-                sensorData['airH'] = value ?? 0;
-              case 3:
-                sensorData['soilM1'] = value ?? 0;
-              case 4:
-                sensorData['soilM2'] = value ?? 0;
-              case 5:
-                sensorData['waterT'] = value ?? 0;
-              case 6:
-                sensorData['level'] = value ?? 0;
-              case 7:
-                sensorData['light'] = value ?? 0;
+            final label = reading['sensor_label'];
+            final value = reading['value'] ?? 0;
 
-            }
+            sensorData[label] = value;
           }
 
           final now = DateTime.now();
@@ -151,17 +134,17 @@ class SensorScreenState extends State<SensorScreen> {
               padding: EdgeInsets.all(16.0),
               children: [
                 buildSensorCard(
-                    'Температура воздуха', sensorData['airT'], '°C', Icons.thermostat),
+                    'Температура воздуха', sensorData['airTemp'], '°C', Icons.thermostat),
                 buildSensorCard(
-                    'Влажность воздуха', sensorData['airH'], '%', Icons.water_drop),
+                    'Влажность воздуха', sensorData['airHum'], '%', Icons.water_drop),
                 buildSensorCard(
-                    'Влажность почвы грядки 1', sensorData['soilM1'], '%', Icons.grass),
+                    'Влажность почвы грядки 1', sensorData['soilMoist1'], '%', Icons.grass),
                 buildSensorCard(
-                    'Влажность почвы грядки 2', sensorData['soilM2'], '%', Icons.grass),
+                    'Влажность почвы грядки 2', sensorData['soilMoist2'], '%', Icons.grass),
                 buildSensorCard(
-                    'Температура\nводы', sensorData['waterT'], '°C', Icons.opacity),
+                    'Температура\nводы', sensorData['waterTemp'], '°C', Icons.opacity),
                 buildSensorCard(
-                    'Уровень\nводы', sensorData['level'], '/ 3', Icons.water),
+                    'Уровень\nводы', sensorData['waterLevel'], '/ 3', Icons.water),
                 buildLightSensorCard('Освещенность', sensorData['light']),
               ],
             ),
