@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:fluttertoast/fluttertoast.dart';
+import 'user_gh_module.dart'; // Импорт нового модуля
 import 'login_screen.dart';
+import 'dart:convert';
 
 class UserScreen extends StatefulWidget {
   @override
-  _UserScreenState createState() => _UserScreenState();
+  UserScreenState createState() => UserScreenState();
 }
 
-class _UserScreenState extends State<UserScreen> {
+class UserScreenState extends State<UserScreen> {
   bool _isLoggedIn = false;
-  String? _guid; // Храним GUID теплицы
+  String? _guid;
+  String? _email; // Email пользователя
+  String? _firstName; // Имя пользователя
+  String? _lastName; // Фамилия пользователя
 
   @override
   void initState() {
@@ -23,10 +28,13 @@ class _UserScreenState extends State<UserScreen> {
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = token != null && token.isNotEmpty;
-      });
+    if (token != null && token.isNotEmpty) {
+      await _fetchUserData(); // Загружаем данные пользователя
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = true;
+        });
+      }
     }
   }
 
@@ -39,80 +47,30 @@ class _UserScreenState extends State<UserScreen> {
     }
   }
 
-  Future<void> _saveGreenhouseGUID(String guid) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('greenhouse_guid', guid);
-    setState(() {
-      _guid = guid;
-    });
-  }
-
-  Future<void> _bindGreenhouse() async {
-    String guid = '';
-    String pin = '';
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Привязать теплицу'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                onChanged: (value) => guid = value,
-                decoration: InputDecoration(labelText: 'GUID'),
-              ),
-              TextField(
-                onChanged: (value) => pin = value,
-                decoration: InputDecoration(labelText: 'PIN'),
-                obscureText: true,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Отмена'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _sendBindRequest(guid, pin);
-              },
-              child: Text('Привязать'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _sendBindRequest(String guid, String pin) async {
+  Future<void> _fetchUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
-    final response = await http.patch(
-      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/bind'),
+    final response = await http.get(
+      Uri.parse('http://alexandergh2023.tplinkdns.com/users/me'),
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: '{"guid": "$guid", "pin": "$pin"}',
     );
 
     if (response.statusCode == 200) {
-      await _saveGreenhouseGUID(guid);
-      Fluttertoast.showToast(
-        msg: "Теплица успешно привязана!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.TOP,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-      );
+      final data = Map<String, dynamic>.from(json.decode(response.body));
+
+      if (mounted) {
+        setState(() {
+          _email = data['email'];
+          _firstName = data['first_name'];
+          _lastName = data['last_name'];
+        });
+      }
     } else {
       Fluttertoast.showToast(
-        msg: "Ошибка: ${response.body}",
+        msg: "Ошибка при загрузке данных пользователя: ${response.statusCode}",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.TOP,
         backgroundColor: Colors.red,
@@ -128,6 +86,9 @@ class _UserScreenState extends State<UserScreen> {
       setState(() {
         _isLoggedIn = false;
         _guid = null;
+        _email = null;
+        _firstName = null;
+        _lastName = null;
       });
     }
     Fluttertoast.showToast(
@@ -139,6 +100,12 @@ class _UserScreenState extends State<UserScreen> {
     );
   }
 
+  void _onGreenhouseBound(String guid) {
+    setState(() {
+      _guid = guid;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -148,38 +115,25 @@ class _UserScreenState extends State<UserScreen> {
               children: [
                 Icon(Icons.account_circle, size: 100, color: Colors.green),
                 SizedBox(height: 20),
-                Text(
-                  'Добро пожаловать!',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                if (_firstName != null && _lastName != null)
+                  Text(
+                    'Добро пожаловать, $_firstName $_lastName!',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                if (_email != null)
+                  Text(
+                    'Email: $_email',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: _logout,
                   child: Text('Выйти из аккаунта'),
                 ),
                 SizedBox(height: 20),
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    children: [
-                      if (_guid != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            'GUID: $_guid',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      IconButton(
-                        icon: Icon(Icons.add_circle, size: 30, color: Colors.green),
-                        onPressed: _bindGreenhouse,
-                      ),
-                    ],
-                  ),
+                UserGreenhouseModule(
+                  guid: _guid,
+                  onGreenhouseBound: _onGreenhouseBound,
                 ),
               ],
             )
