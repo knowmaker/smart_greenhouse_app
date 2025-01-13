@@ -4,6 +4,7 @@ import 'sensor_screen.dart';
 import 'control_screen.dart';
 import 'settings_screen.dart';
 import 'login_screen.dart';
+import 'user_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -34,19 +35,19 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  bool _isLoggedIn = false; // Флаг для проверки входа
+  bool _isLoggedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus(); // Проверяем статус входа при старте
+    _checkLoginStatus();
   }
 
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     setState(() {
-      _isLoggedIn = token != null && token.isNotEmpty; // Проверяем наличие токена
+      _isLoggedIn = token != null && token.isNotEmpty;
     });
   }
 
@@ -58,9 +59,9 @@ class MainScreenState extends State<MainScreen> {
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token'); // Удаляем токен при выходе
+    await prefs.remove('access_token');
     setState(() {
-      _isLoggedIn = false; // Обновляем статус входа
+      _isLoggedIn = false;
     });
   }
 
@@ -68,6 +69,7 @@ class MainScreenState extends State<MainScreen> {
     SensorScreen(),
     ControlScreen(),
     SettingsScreen(),
+    UserScreen(),
   ];
 
   @override
@@ -78,16 +80,16 @@ class MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isLoggedIn ? Icons.exit_to_app : Icons.account_circle, // Меняем иконку
+              _isLoggedIn ? Icons.exit_to_app : Icons.account_circle,
               size: 30,
             ),
             onPressed: () async {
               if (_isLoggedIn) {
-                _logout(); // Если вошли, выходим
+                _logout();
               } else {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()), // Переход на экран входа
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
                 );
                 _checkLoginStatus();
               }
@@ -97,6 +99,7 @@ class MainScreenState extends State<MainScreen> {
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.sensors),
@@ -110,9 +113,15 @@ class MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.settings),
             label: 'Настройки',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Профиль',
+          ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.green[700],
+        selectedFontSize: 14,
+        unselectedFontSize: 12,
         onTap: _onItemTapped,
       ),
     );
