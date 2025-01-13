@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -52,15 +53,23 @@ class LoginScreenState extends State<LoginScreen> {
       await prefs.setString('access_token', token);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Успешный вход!')),
+        Fluttertoast.showToast(
+          msg: "Успешный вход!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
         );
         Navigator.pop(context);
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка входа: ${response.statusCode}')),
+        Fluttertoast.showToast(
+          msg: "Ошибка входа: ${response.statusCode}",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
         );
       }
     }
@@ -81,8 +90,12 @@ class LoginScreenState extends State<LoginScreen> {
 
     if (response.statusCode == 201) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Регистрация успешна! Перейдите к авторизации.')),
+        Fluttertoast.showToast(
+          msg: "Регистрация успешна! Перейдите к авторизации",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
         );
         setState(() {
           _isRegistering = false;
@@ -90,8 +103,12 @@ class LoginScreenState extends State<LoginScreen> {
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка регистрации: ${response.statusCode}')),
+        Fluttertoast.showToast(
+          msg: "Ошибка регистрации: ${response.statusCode}",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
         );
       }
     }

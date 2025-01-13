@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:fluttertoast/fluttertoast.dart';
 import 'login_screen.dart';
 
 class UserScreen extends StatefulWidget {
@@ -22,16 +23,20 @@ class _UserScreenState extends State<UserScreen> {
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    setState(() {
-      _isLoggedIn = token != null && token.isNotEmpty;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = token != null && token.isNotEmpty;
+      });
+    }
   }
 
   Future<void> _loadGreenhouseGUID() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _guid = prefs.getString('greenhouse_guid');
-    });
+    if (mounted) {
+      setState(() {
+        _guid = prefs.getString('greenhouse_guid');
+      });
+    }
   }
 
   Future<void> _saveGreenhouseGUID(String guid) async {
@@ -42,7 +47,7 @@ class _UserScreenState extends State<UserScreen> {
     });
   }
 
-  Future<void> _bindGreenhouse(BuildContext context) async {
+  Future<void> _bindGreenhouse() async {
     String guid = '';
     String pin = '';
 
@@ -72,8 +77,8 @@ class _UserScreenState extends State<UserScreen> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context); // Закрываем диалог
-                await _sendBindRequest(guid, pin); // Отправляем запрос
+                Navigator.pop(context);
+                await _sendBindRequest(guid, pin);
               },
               child: Text('Привязать'),
             ),
@@ -98,25 +103,39 @@ class _UserScreenState extends State<UserScreen> {
 
     if (response.statusCode == 200) {
       await _saveGreenhouseGUID(guid);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Теплица успешно привязана!')),
+      Fluttertoast.showToast(
+        msg: "Теплица успешно привязана!",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: ${response.body}')),
+      Fluttertoast.showToast(
+        msg: "Ошибка: ${response.body}",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
       );
     }
   }
 
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
-    setState(() {
-      _isLoggedIn = false;
-      _guid = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Вы вышли из аккаунта')),
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = false;
+        _guid = null;
+      });
+    }
+    Fluttertoast.showToast(
+      msg: "Вы вышли из аккаунта",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.TOP,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
     );
   }
 
@@ -135,7 +154,7 @@ class _UserScreenState extends State<UserScreen> {
                 ),
                 SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () => _logout(context),
+                  onPressed: _logout,
                   child: Text('Выйти из аккаунта'),
                 ),
                 SizedBox(height: 20),
@@ -148,13 +167,16 @@ class _UserScreenState extends State<UserScreen> {
                   child: Column(
                     children: [
                       if (_guid != null)
-                        Text(
-                          'GUID: $_guid',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            'GUID: $_guid',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       IconButton(
                         icon: Icon(Icons.add_circle, size: 30, color: Colors.green),
-                        onPressed: () => _bindGreenhouse(context),
+                        onPressed: _bindGreenhouse,
                       ),
                     ],
                   ),
