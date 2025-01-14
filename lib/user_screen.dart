@@ -14,9 +14,9 @@ class UserScreen extends StatefulWidget {
 class UserScreenState extends State<UserScreen> {
   bool _isLoggedIn = false;
   String? _guid;
-  String? _email; // Email пользователя
-  String? _firstName; // Имя пользователя
-  String? _lastName; // Фамилия пользователя
+  String? _email;
+  String? _firstName;
+  String? _lastName;
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class UserScreenState extends State<UserScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     if (token != null && token.isNotEmpty) {
-      await _fetchUserData(); // Загружаем данные пользователя
+      await _fetchUserData();
       if (mounted) {
         setState(() {
           _isLoggedIn = true;
@@ -106,58 +106,106 @@ class UserScreenState extends State<UserScreen> {
     });
   }
 
+  Widget _buildInfoRow(IconData icon, String label, String? content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.grey),
+            SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    content ?? '-',
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Divider(color: Colors.grey[300]),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: _isLoggedIn
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.account_circle, size: 100, color: Colors.green),
-                SizedBox(height: 20),
-                if (_firstName != null && _lastName != null)
+    return Scaffold(
+      body: Center(
+        child: _isLoggedIn
+            ? SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      color: Colors.green[300],
+                      child: Center(
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey[300],
+                          child: Icon(Icons.person, size: 50, color: Colors.grey[700]),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildInfoRow(Icons.email, 'Email', _email),
+                          _buildInfoRow(Icons.person, 'Имя', _firstName),
+                          _buildInfoRow(Icons.person_outline, 'Фамилия', _lastName),
+                        ],
+                      ),
+                    ),
+                    if (_guid != null)
+                      UserGreenhouseModule(
+                        guid: _guid,
+                        onGreenhouseBound: _onGreenhouseBound,
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: ElevatedButton(
+                        onPressed: _logout,
+                        child: Text('Выйти из аккаунта'),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.account_circle, size: 100, color: Colors.grey),
+                  SizedBox(height: 20),
                   Text(
-                    'Добро пожаловать, $_firstName $_lastName!',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    'Вы не авторизованы',
+                    style: TextStyle(fontSize: 18),
                   ),
-                if (_email != null)
-                  Text(
-                    'Email: $_email',
-                    style: TextStyle(fontSize: 16),
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                      );
+                    },
+                    child: Text('Войти'),
                   ),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _logout,
-                  child: Text('Выйти из аккаунта'),
-                ),
-                SizedBox(height: 20),
-                UserGreenhouseModule(
-                  guid: _guid,
-                  onGreenhouseBound: _onGreenhouseBound,
-                ),
-              ],
-            )
-          : Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.account_circle, size: 100, color: Colors.grey),
-                SizedBox(height: 20),
-                Text(
-                  'Вы не авторизованы',
-                  style: TextStyle(fontSize: 18),
-                ),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
-                    );
-                  },
-                  child: Text('Войти'),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 }
