@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Умная Теплица',
+      title: 'Smart Greenhouse',
       theme: ThemeData(
         primarySwatch: Colors.green,
         colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green).copyWith(secondary: Colors.greenAccent),
@@ -104,16 +104,25 @@ class MainScreenState extends State<MainScreen> {
             if (_selectedGreenhouse == null)
               Text('SMART GREENHOUSE')
             else
-              Row(
-                children: [
-                  Icon(Icons.holiday_village_rounded, size: 20),
-                  SizedBox(width: 8),
-                  Text(_selectedGreenhouse!['title']!),
-                ],
+              Flexible(
+                child: Row(
+                  children: [
+                    Icon(Icons.holiday_village_rounded, size: 24),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _selectedGreenhouse!['title']!,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             if (_isLoggedIn && _greenhouses.isNotEmpty)
               IconButton(
-                icon: Icon(Icons.arrow_drop_down),
+                icon: Icon(Icons.arrow_drop_down, size: 28),
                 onPressed: () {
                   showModalBottomSheet(
                     context: context,
