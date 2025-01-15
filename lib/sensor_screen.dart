@@ -1,33 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'login_screen.dart';
 
 class SensorScreen extends StatefulWidget {
+  final Future<void> Function() onLoadGreenhouses; // Функция, которая загружает теплицы
+
+  SensorScreen({required this.onLoadGreenhouses});
+
   @override
   SensorScreenState createState() => SensorScreenState();
 }
 
 class SensorScreenState extends State<SensorScreen> {
   Map<String, dynamic> sensorData = {
-    'airTemp': 0,
-    'airHum': 0,
-    'soilMoist1': 0,
-    'soilMoist2': 0,
-    'waterTemp': 0,
-    'waterLevel': 0,
-    'light': 0,
+    'airTemp': '-',
+    'airHum': '-',
+    'soilMoist1': '-',
+    'soilMoist2': '-',
+    'waterTemp': '-',
+    'waterLevel': '-',
+    'light': '-',
   };
 
   String lastUpdate = "Никогда";
+  bool isLoggedIn = false;
+  String? selectedGreenhouseGuid;
 
   @override
   void initState() {
     super.initState();
     _loadLastUpdate();
-    fetchSensorData();
+    _checkLoginStatus();
+    loadSelectedGreenhouse();
   }
-
   Future<void> _loadLastUpdate() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -40,18 +47,32 @@ class SensorScreenState extends State<SensorScreen> {
     await prefs.setString('last_sensor_update', date);
   }
 
-  Future<void> fetchSensorData({bool manualRefresh = false}) async {
+  Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
+    setState(() {
+      isLoggedIn = token != null && token.isNotEmpty;
+    });
+  }
 
-    if (token == null || token.isEmpty) {
-      if (manualRefresh) {
-        _showAuthDialog();
-      }
-      return;
+  Future<void> loadSelectedGreenhouse() async {
+    final prefs = await SharedPreferences.getInstance();
+    final guid = prefs.getString('selected_greenhouse_guid');
+    setState(() {
+      selectedGreenhouseGuid = guid;
+    });
+    if (isLoggedIn && guid != null) {
+      fetchSensorData();
     }
+  }
 
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/sensor-readings/0000BFE7');
+  Future<void> fetchSensorData() async {
+    if (!isLoggedIn || selectedGreenhouseGuid == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/sensor-readings/$selectedGreenhouseGuid');
+
     try {
       final response = await http.get(
         url,
@@ -60,55 +81,72 @@ class SensorScreenState extends State<SensorScreen> {
           'Authorization': 'Bearer $token',
         },
       );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final readings = data['latest_readings'] as List;
 
-        setState(() {
-          for (var reading in readings) {
-            final label = reading['sensor_label'];
-            final value = reading['value'] ?? 0;
+        if (readings.isEmpty) {
+          setState(() {
+            sensorData = sensorData.map((key, value) => MapEntry(key, 'Н/Д'));
+          });
+        } else {
+          setState(() {
+            for (var reading in readings) {
+              final label = reading['sensor_label'];
+              final value = reading['value'] ?? 'Н/Д';
+              sensorData[label] = value;
+            }
 
-            sensorData[label] = value;
-          }
-
-          final now = DateTime.now();
-          lastUpdate =
-              "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+            final now = DateTime.now();
+            lastUpdate =
+                "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
           _saveLastUpdate(lastUpdate);
-        });
+          });
+        }
       } else {
-        print('Failed to load sensor data: ${response.statusCode}');
+        setState(() {
+          sensorData = sensorData.map((key, value) => MapEntry(key, 'Н/Д'));
+        });
       }
     } catch (e) {
       print('Error fetching sensor data: $e');
     }
   }
 
-  void _showAuthDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Необходима авторизация'),
-          content: Text('Для получения данных сенсоров необходимо авторизоваться.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Просто скрываем окно
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (!isLoggedIn) {
+      return Center(
+        child: ElevatedButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoginScreen(
+                  onLoginSuccess: widget.onLoadGreenhouses,
+                ),
+              ),
+            );
+            _checkLoginStatus();
+          },
+          child: Text('Войти'),
+        ),
+      );
+    }
+
+    if (selectedGreenhouseGuid == null) {
+      return Center(
+        child: Text(
+          'Выберите теплицу для управления.',
+          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
     return RefreshIndicator(
-      onRefresh: () => fetchSensorData(manualRefresh: true),
+      onRefresh: loadSelectedGreenhouse,
       color: Colors.purple,
       child: Column(
         children: [
@@ -204,9 +242,17 @@ class SensorScreenState extends State<SensorScreen> {
     );
   }
 
-  Widget buildLightSensorCard(String title, int lightValue) {
-    IconData icon = lightValue == 0 ? Icons.wb_sunny : Icons.nights_stay;
-    String label = lightValue == 0 ? 'Светло' : 'Темно';
+  Widget buildLightSensorCard(String title, dynamic lightValue) {
+    IconData icon = lightValue == 'Н/Д'
+        ? Icons.help_outline
+        : lightValue == 0
+            ? Icons.wb_sunny
+            : Icons.nights_stay;
+    String label = lightValue == 'Н/Д'
+        ? 'Н/Д'
+        : lightValue == 0
+            ? 'Светло'
+            : 'Темно';
 
     return Card(
       elevation: 6,

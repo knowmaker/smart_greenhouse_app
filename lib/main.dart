@@ -97,6 +97,13 @@ class MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      SensorScreen(onLoadGreenhouses: _loadGreenhouses), // Передаем метод как параметр
+      ControlScreen(),
+      SettingsScreen(),
+      UserScreen(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -151,7 +158,7 @@ class MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-      body: _screens[_selectedIndex],
+      body: screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[
@@ -180,11 +187,4 @@ class MainScreenState extends State<MainScreen> {
       ),
     );
   }
-
-  final List<Widget> _screens = [
-    SensorScreen(),
-    ControlScreen(),
-    SettingsScreen(),
-    UserScreen(),
-  ];
 }
