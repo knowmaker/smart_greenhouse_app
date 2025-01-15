@@ -7,6 +7,7 @@ import 'settings_screen.dart';
 import 'user_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'auth_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,24 +37,25 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  bool _isLoggedIn = false;
+  // bool _isLoggedIn = false;
   List<Map<String, String>> _greenhouses = [];
   Map<String, String>? _selectedGreenhouse;
 
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // _checkLoginStatus();
+    GlobalAuth.initialize();
     _loadGreenhouses();
   }
 
-  Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    setState(() {
-      _isLoggedIn = token != null && token.isNotEmpty;
-    });
-  }
+  // Future<void> _checkLoginStatus() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString('access_token');
+  //   setState(() {
+  //     _isLoggedIn = token != null && token.isNotEmpty;
+  //   });
+  // }
 
   Future<void> _loadGreenhouses() async {
     final prefs = await SharedPreferences.getInstance();
@@ -77,6 +79,14 @@ class MainScreenState extends State<MainScreen> {
       });
 
       final savedGuid = prefs.getString('selected_greenhouse_guid');
+
+      // if (savedGuid != null && _greenhouses.any((gh) => gh['guid'] == savedGuid)) {
+      //   _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid);
+      // } else if (_greenhouses.isNotEmpty) {
+      //   _selectedGreenhouse = _greenhouses.first;
+      // } else {
+      //   _selectedGreenhouse = null;
+      // }
       if (savedGuid != null) {
         _selectedGreenhouse =
             _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid, orElse: () => _greenhouses.first);
@@ -101,7 +111,7 @@ class MainScreenState extends State<MainScreen> {
       SensorScreen(onLoadGreenhouses: _loadGreenhouses), // Передаем метод как параметр
       ControlScreen(),
       SettingsScreen(),
-      UserScreen(),
+      UserScreen(onLoadGreenhouses: _loadGreenhouses),
     ];
 
     return Scaffold(
@@ -127,7 +137,7 @@ class MainScreenState extends State<MainScreen> {
                   ],
                 ),
               ),
-            if (_isLoggedIn && _greenhouses.isNotEmpty)
+            if (GlobalAuth.isLoggedIn && _greenhouses.isNotEmpty)
               IconButton(
                 icon: Icon(Icons.arrow_drop_down, size: 28),
                 onPressed: () {

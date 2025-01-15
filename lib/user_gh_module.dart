@@ -5,6 +5,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:convert';
 
 class UserGreenhouseModule extends StatefulWidget {
+  final Future<void> Function() onUpdate;
+
+  UserGreenhouseModule({required this.onUpdate});
   @override
   UserGreenhouseModuleState createState() => UserGreenhouseModuleState();
 }
@@ -126,6 +129,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
         textColor: Colors.white,
       );
       await _fetchGreenhouses();
+      await widget.onUpdate();
     } else {
       Fluttertoast.showToast(
         msg: "Ошибка: ${response.body}",

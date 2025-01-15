@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginScreen extends StatefulWidget {
-  final VoidCallback? onLoginSuccess;
+  final Future<void> Function() onUpdate;
 
-  LoginScreen({this.onLoginSuccess});
+  LoginScreen({required this.onUpdate});
   @override
   LoginScreenState createState() => LoginScreenState();
 }
@@ -64,9 +64,7 @@ class LoginScreenState extends State<LoginScreen> {
           textColor: Colors.white,
         );
         Navigator.pop(context);
-        if (widget.onLoginSuccess != null) {
-          widget.onLoginSuccess!();
-        }
+        await widget.onUpdate();
       }
     } else {
       if (mounted) {

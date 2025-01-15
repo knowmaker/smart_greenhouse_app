@@ -7,6 +7,9 @@ import 'login_screen.dart';
 import 'dart:convert';
 
 class UserScreen extends StatefulWidget {
+  final Future<void> Function() onLoadGreenhouses;
+
+  UserScreen({required this.onLoadGreenhouses});
   @override
   UserScreenState createState() => UserScreenState();
 }
@@ -165,7 +168,7 @@ class UserScreenState extends State<UserScreen> {
                             textAlign: TextAlign.center, // Центрирование текста
                           ),
                           SizedBox(height: 10), // Отступ между текстом и модулем
-                          UserGreenhouseModule(),
+                          UserGreenhouseModule(onUpdate: widget.onLoadGreenhouses),
                         ],
                       ),
                     ),
@@ -199,7 +202,7 @@ class UserScreenState extends State<UserScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                        MaterialPageRoute(builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses)),
                       );
                     },
                     child: Text('Войти'),

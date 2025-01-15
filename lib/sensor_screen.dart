@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'login_screen.dart';
+import 'auth_provider.dart';
 
 class SensorScreen extends StatefulWidget {
   final Future<void> Function() onLoadGreenhouses; // Функция, которая загружает теплицы
@@ -25,14 +26,15 @@ class SensorScreenState extends State<SensorScreen> {
   };
 
   String lastUpdate = "Никогда";
-  bool isLoggedIn = false;
+  // bool isLoggedIn = false;
   String? selectedGreenhouseGuid;
 
   @override
   void initState() {
     super.initState();
     _loadLastUpdate();
-    _checkLoginStatus();
+    // _checkLoginStatus();
+    GlobalAuth.initialize();
     loadSelectedGreenhouse();
   }
   Future<void> _loadLastUpdate() async {
@@ -47,13 +49,13 @@ class SensorScreenState extends State<SensorScreen> {
     await prefs.setString('last_sensor_update', date);
   }
 
-  Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    setState(() {
-      isLoggedIn = token != null && token.isNotEmpty;
-    });
-  }
+  // Future<void> _checkLoginStatus() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString('access_token');
+  //   setState(() {
+  //     isLoggedIn = token != null && token.isNotEmpty;
+  //   });
+  // }
 
   Future<void> loadSelectedGreenhouse() async {
     final prefs = await SharedPreferences.getInstance();
@@ -61,13 +63,13 @@ class SensorScreenState extends State<SensorScreen> {
     setState(() {
       selectedGreenhouseGuid = guid;
     });
-    if (isLoggedIn && guid != null) {
+    if (GlobalAuth.isLoggedIn && guid != null) {
       fetchSensorData();
     }
   }
 
   Future<void> fetchSensorData() async {
-    if (!isLoggedIn || selectedGreenhouseGuid == null) return;
+    if (!GlobalAuth.isLoggedIn || selectedGreenhouseGuid == null) return;
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -116,7 +118,7 @@ class SensorScreenState extends State<SensorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isLoggedIn) {
+    if (!GlobalAuth.isLoggedIn) {
       return Center(
         child: ElevatedButton(
           onPressed: () async {
@@ -124,11 +126,12 @@ class SensorScreenState extends State<SensorScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => LoginScreen(
-                  onLoginSuccess: widget.onLoadGreenhouses,
+                  onUpdate: widget.onLoadGreenhouses,
                 ),
               ),
             );
-            _checkLoginStatus();
+            // _checkLoginStatus();
+            GlobalAuth.initialize();
           },
           child: Text('Войти'),
         ),
