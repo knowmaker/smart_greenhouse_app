@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:fluttertoast/fluttertoast.dart';
-import 'user_gh_module.dart'; // Импорт нового модуля
+import 'user_gh_module.dart';
 import 'login_screen.dart';
 import 'dart:convert';
 
@@ -13,7 +13,6 @@ class UserScreen extends StatefulWidget {
 
 class UserScreenState extends State<UserScreen> {
   bool _isLoggedIn = false;
-  String? _guid;
   String? _email;
   String? _firstName;
   String? _lastName;
@@ -22,7 +21,6 @@ class UserScreenState extends State<UserScreen> {
   void initState() {
     super.initState();
     _checkLoginStatus();
-    _loadGreenhouseGUID();
   }
 
   Future<void> _checkLoginStatus() async {
@@ -35,15 +33,6 @@ class UserScreenState extends State<UserScreen> {
           _isLoggedIn = true;
         });
       }
-    }
-  }
-
-  Future<void> _loadGreenhouseGUID() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _guid = prefs.getString('greenhouse_guid');
-      });
     }
   }
 
@@ -85,7 +74,6 @@ class UserScreenState extends State<UserScreen> {
     if (mounted) {
       setState(() {
         _isLoggedIn = false;
-        _guid = null;
         _email = null;
         _firstName = null;
         _lastName = null;
@@ -98,12 +86,6 @@ class UserScreenState extends State<UserScreen> {
       backgroundColor: Colors.black,
       textColor: Colors.white,
     );
-  }
-
-  void _onGreenhouseBound(String guid) {
-    setState(() {
-      _guid = guid;
-    });
   }
 
   Widget _buildInfoRow(IconData icon, String label, String? content) {
@@ -140,7 +122,8 @@ class UserScreenState extends State<UserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      body: Align(
+        alignment: Alignment.topCenter,
         child: _isLoggedIn
             ? SingleChildScrollView(
                 child: Column(
@@ -169,16 +152,34 @@ class UserScreenState extends State<UserScreen> {
                         ],
                       ),
                     ),
-                    if (_guid != null)
-                      UserGreenhouseModule(
-                        guid: _guid,
-                        onGreenhouseBound: _onGreenhouseBound,
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min, // Минимальный размер колонки по вертикали
+                        children: [
+                          Text(
+                            'Мои теплицы',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center, // Центрирование текста
+                          ),
+                          SizedBox(height: 10), // Отступ между текстом и модулем
+                          UserGreenhouseModule(),
+                        ],
                       ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton(
-                        onPressed: _logout,
-                        child: Text('Выйти из аккаунта'),
+                      child: Center(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: _logout,
+                          child: Text('Выйти из аккаунта'),
+                        ),
                       ),
                     ),
                   ],
