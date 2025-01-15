@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'sensor_screen.dart';
 import 'control_screen.dart';
 import 'settings_screen.dart';
-import 'login_screen.dart';
 import 'user_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,11 +37,14 @@ class MainScreen extends StatefulWidget {
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _isLoggedIn = false;
+  List<Map<String, String>> _greenhouses = [];
+  Map<String, String>? _selectedGreenhouse;
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _loadGreenhouses();
   }
 
   Future<void> _checkLoginStatus() async {
@@ -51,51 +55,92 @@ class MainScreenState extends State<MainScreen> {
     });
   }
 
+  Future<void> _loadGreenhouses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) return;
+
+    final response = await http.get(
+      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      setState(() {
+        _greenhouses = data.map((item) {
+          return {
+            'guid': item['guid'] as String,
+            'title': item['title'] as String,
+          };
+        }).toList();
+      });
+
+      final savedGuid = prefs.getString('selected_greenhouse_guid');
+      if (savedGuid != null) {
+        _selectedGreenhouse =
+            _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid, orElse: () => _greenhouses.first);
+      }
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  Future<void> _logout() async {
+  Future<void> _saveSelectedGreenhouse(Map<String, String> greenhouse) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    setState(() {
-      _isLoggedIn = false;
-    });
+    await prefs.setString('selected_greenhouse_guid', greenhouse['guid']!);
   }
-
-  final List<Widget> _screens = [
-    SensorScreen(),
-    ControlScreen(),
-    SettingsScreen(),
-    UserScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Умная Теплица'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isLoggedIn ? Icons.exit_to_app : Icons.account_circle,
-              size: 30,
-            ),
-            onPressed: () async {
-              if (_isLoggedIn) {
-                _logout();
-              } else {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
-                _checkLoginStatus();
-              }
-            },
-          ),
-        ],
+        title: Row(
+          children: [
+            if (_selectedGreenhouse == null)
+              Text('SMART GREENHOUSE')
+            else
+              Row(
+                children: [
+                  Icon(Icons.holiday_village_rounded, size: 20),
+                  SizedBox(width: 8),
+                  Text(_selectedGreenhouse!['title']!),
+                ],
+              ),
+            if (_isLoggedIn && _greenhouses.isNotEmpty)
+              IconButton(
+                icon: Icon(Icons.arrow_drop_down),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (context) {
+                      return ListView.builder(
+                        itemCount: _greenhouses.length,
+                        itemBuilder: (context, index) {
+                          final greenhouse = _greenhouses[index];
+                          return ListTile(
+                            leading: Icon(Icons.house),
+                            title: Text(greenhouse['title']!),
+                            onTap: () {
+                              setState(() {
+                                _selectedGreenhouse = greenhouse;
+                              });
+                              _saveSelectedGreenhouse(greenhouse);
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+          ],
+        ),
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -126,4 +171,11 @@ class MainScreenState extends State<MainScreen> {
       ),
     );
   }
+
+  final List<Widget> _screens = [
+    SensorScreen(),
+    ControlScreen(),
+    SettingsScreen(),
+    UserScreen(),
+  ];
 }
