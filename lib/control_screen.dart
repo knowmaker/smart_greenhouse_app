@@ -16,11 +16,11 @@ class ControlScreen extends StatefulWidget {
 }
 
 class ControlScreenState extends State<ControlScreen> {
-  Map<String, bool> controlState = {
-    'ventilation': false,
-    'watering1': false,
-    'watering2': false,
-    'lighting': false,
+  Map<String, bool?> controlState = {
+    'ventilation': null,
+    'watering1': null,
+    'watering2': null,
+    'lighting': null,
   };
 
   String lastUpdate = "Никогда";
@@ -85,12 +85,10 @@ class ControlScreenState extends State<ControlScreen> {
         final data = jsonDecode(response.body);
         final deviceStates = data['latest_device_states'] as List;
 
-        if (deviceStates.isEmpty) {
-          setState(() {
-            controlState = controlState.map((key, value) => MapEntry(key, false));
-          });
-        } else {
-          setState(() {
+        setState(() {
+          if (deviceStates.isEmpty) {
+            controlState.updateAll((key, value) => null);
+          } else {
             for (var deviceState in deviceStates) {
               final label = deviceState['device_label'];
               final state = deviceState['state'];
@@ -100,12 +98,12 @@ class ControlScreenState extends State<ControlScreen> {
             final now = DateTime.now();
             lastUpdate =
                 "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-          _saveLastUpdate(lastUpdate);
-          });
-        }
+            _saveLastUpdate(lastUpdate);
+          }
+        });
       } else {
         setState(() {
-          controlState = controlState.map((key, value) => MapEntry(key, false));
+          controlState.updateAll((key, value) => null);
         });
       }
     } catch (e) {
@@ -114,8 +112,8 @@ class ControlScreenState extends State<ControlScreen> {
   }
 
   Future<void> updateControlState(String controlName, bool state) async {
-
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
+    final url = Uri.parse(
+        'http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
     try {
       final response = await http.post(url);
       if (response.statusCode == 200) {
@@ -200,6 +198,7 @@ class ControlScreenState extends State<ControlScreen> {
   }
 
   Widget buildControlCard(String title, String controlName, IconData icon) {
+    final state = controlState[controlName];
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(
@@ -229,27 +228,32 @@ class ControlScreenState extends State<ControlScreen> {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
-            controlState[controlName] == false
-              ? Text(
-                  '-',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                )
-              : Switch(
-                value: controlState[controlName] ?? false,
-                activeColor: Colors.white, // Цвет ползунка, когда включён
-                activeTrackColor: Colors.green, // Цвет трека, когда включён
-                inactiveThumbColor: Colors.grey, // Цвет ползунка, когда выключен
-                inactiveTrackColor: Colors.grey.shade300, // Цвет трека, когда выключен
-                onChanged: (bool value){
-                  setState(() {
-                    controlState[controlName] = value;
-                  });
-                  updateControlState(controlName, value);
-                },
+            SizedBox(
+              height: 40, // Установим фиксированную высоту, равную высоте Switch
+              child: state == null
+                  ? Center(
+                      child: Text(
+                        '-',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : Switch(
+                      value: state,
+                      activeColor: Colors.white,
+                      activeTrackColor: Colors.green,
+                      inactiveThumbColor: Colors.grey,
+                      inactiveTrackColor: Colors.grey.shade300,
+                      onChanged: (bool value) {
+                        setState(() {
+                          controlState[controlName] = value;
+                        });
+                        updateControlState(controlName, value);
+                      },
+                    ),
             ),
           ],
         ),
