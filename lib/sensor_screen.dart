@@ -26,14 +26,12 @@ class SensorScreenState extends State<SensorScreen> {
   };
 
   String lastUpdate = "Никогда";
-  // bool isLoggedIn = false;
   String? selectedGreenhouseGuid;
 
   @override
   void initState() {
     super.initState();
     _loadLastUpdate();
-    // _checkLoginStatus();
     GlobalAuth.initialize();
     loadSelectedGreenhouse();
   }
@@ -48,14 +46,6 @@ class SensorScreenState extends State<SensorScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_sensor_update', date);
   }
-
-  // Future<void> _checkLoginStatus() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final token = prefs.getString('access_token');
-  //   setState(() {
-  //     isLoggedIn = token != null && token.isNotEmpty;
-  //   });
-  // }
 
   Future<void> loadSelectedGreenhouse() async {
     final prefs = await SharedPreferences.getInstance();
@@ -90,13 +80,13 @@ class SensorScreenState extends State<SensorScreen> {
 
         if (readings.isEmpty) {
           setState(() {
-            sensorData = sensorData.map((key, value) => MapEntry(key, 'Н/Д'));
+            sensorData = sensorData.map((key, value) => MapEntry(key, '-'));
           });
         } else {
           setState(() {
             for (var reading in readings) {
               final label = reading['sensor_label'];
-              final value = reading['value'] ?? 'Н/Д';
+              final value = reading['value'] ?? '-';
               sensorData[label] = value;
             }
 
@@ -108,7 +98,7 @@ class SensorScreenState extends State<SensorScreen> {
         }
       } else {
         setState(() {
-          sensorData = sensorData.map((key, value) => MapEntry(key, 'Н/Д'));
+          sensorData = sensorData.map((key, value) => MapEntry(key, '-'));
         });
       }
     } catch (e) {
@@ -130,7 +120,6 @@ class SensorScreenState extends State<SensorScreen> {
                 ),
               ),
             );
-            // _checkLoginStatus();
             GlobalAuth.initialize();
           },
           child: Text('Войти'),
@@ -141,8 +130,12 @@ class SensorScreenState extends State<SensorScreen> {
     if (selectedGreenhouseGuid == null) {
       return Center(
         child: Text(
-          'Выберите теплицу для управления.',
-          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey),
+          'Перейдите в профиль для привязки теплицы.',
+          style: TextStyle(
+            fontSize: 16,
+            fontStyle: FontStyle.italic,
+            color: Colors.grey,
+          ),
           textAlign: TextAlign.center,
         ),
       );
@@ -246,13 +239,13 @@ class SensorScreenState extends State<SensorScreen> {
   }
 
   Widget buildLightSensorCard(String title, dynamic lightValue) {
-    IconData icon = lightValue == 'Н/Д'
-        ? Icons.help_outline
+    IconData icon = lightValue == '-'
+        ? Icons.wb_sunny
         : lightValue == 0
             ? Icons.wb_sunny
             : Icons.nights_stay;
-    String label = lightValue == 'Н/Д'
-        ? 'Н/Д'
+    String label = lightValue == '-'
+        ? '-'
         : lightValue == 0
             ? 'Светло'
             : 'Темно';

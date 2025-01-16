@@ -37,25 +37,15 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  // bool _isLoggedIn = false;
   List<Map<String, String>> _greenhouses = [];
   Map<String, String>? _selectedGreenhouse;
 
   @override
   void initState() {
     super.initState();
-    // _checkLoginStatus();
     GlobalAuth.initialize();
     _loadGreenhouses();
   }
-
-  // Future<void> _checkLoginStatus() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final token = prefs.getString('access_token');
-  //   setState(() {
-  //     _isLoggedIn = token != null && token.isNotEmpty;
-  //   });
-  // }
 
   Future<void> _loadGreenhouses() async {
     final prefs = await SharedPreferences.getInstance();
@@ -108,7 +98,7 @@ class MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
-      SensorScreen(onLoadGreenhouses: _loadGreenhouses), // Передаем метод как параметр
+      SensorScreen(onLoadGreenhouses: _loadGreenhouses),
       ControlScreen(),
       SettingsScreen(),
       UserScreen(onLoadGreenhouses: _loadGreenhouses),
