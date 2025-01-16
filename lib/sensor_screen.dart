@@ -6,9 +6,10 @@ import 'login_screen.dart';
 import 'auth_provider.dart';
 
 class SensorScreen extends StatefulWidget {
-  final Future<void> Function() onLoadGreenhouses; // Функция, которая загружает теплицы
+  final Map<String, String>? greenhouse;
+  final Future<void> Function() onLoadGreenhouses;
 
-  SensorScreen({required this.onLoadGreenhouses});
+  SensorScreen({required this.greenhouse, required this.onLoadGreenhouses});
 
   @override
   SensorScreenState createState() => SensorScreenState();
@@ -35,6 +36,15 @@ class SensorScreenState extends State<SensorScreen> {
     GlobalAuth.initialize();
     loadSelectedGreenhouse();
   }
+
+  @override
+  void didUpdateWidget(SensorScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.greenhouse != oldWidget.greenhouse) {
+      loadSelectedGreenhouse();
+    }
+  }
+
   Future<void> _loadLastUpdate() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {

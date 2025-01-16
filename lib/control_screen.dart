@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'login_screen.dart';
+import 'auth_provider.dart';
 
 class ControlScreen extends StatefulWidget {
+  final Map<String, String>? greenhouse;
+  final Future<void> Function() onLoadGreenhouses;
+
+  ControlScreen({required this.greenhouse, required this.onLoadGreenhouses});
+
   @override
   ControlScreenState createState() => ControlScreenState();
 }
@@ -17,12 +24,22 @@ class ControlScreenState extends State<ControlScreen> {
   };
 
   String lastUpdate = "Никогда";
+  String? selectedGreenhouseGuid;
 
   @override
   void initState() {
     super.initState();
     _loadLastUpdate();
-    fetchControlState();
+    GlobalAuth.initialize();
+    loadSelectedGreenhouse();
+  }
+
+  @override
+  void didUpdateWidget(ControlScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.greenhouse != oldWidget.greenhouse) {
+      loadSelectedGreenhouse();
+    }
   }
 
   Future<void> _loadLastUpdate() async {
@@ -37,18 +54,24 @@ class ControlScreenState extends State<ControlScreen> {
     await prefs.setString('last_control_update', date);
   }
 
-  Future<void> fetchControlState({bool manualRefresh = false}) async {
+  Future<void> loadSelectedGreenhouse() async {
+    final prefs = await SharedPreferences.getInstance();
+    final guid = prefs.getString('selected_greenhouse_guid');
+    setState(() {
+      selectedGreenhouseGuid = guid;
+    });
+    if (GlobalAuth.isLoggedIn && guid != null) {
+      fetchControlState();
+    }
+  }
+
+  Future<void> fetchControlState() async {
+    if (!GlobalAuth.isLoggedIn || selectedGreenhouseGuid == null) return;
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid');
 
-    if (token == null || token.isEmpty) {
-      if (manualRefresh) {
-        _showAuthDialog();
-      }
-      return;
-    }
-
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/0000BFE7');
     try {
       final response = await http.get(
         url,
@@ -57,57 +80,42 @@ class ControlScreenState extends State<ControlScreen> {
           'Authorization': 'Bearer $token',
         },
       );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final deviceStates = data['latest_device_states'] as List;
 
-        setState(() {
-          for (var deviceState in deviceStates) {
-            final label = deviceState['device_label'];
-            final state = deviceState['state'];
+        if (deviceStates.isEmpty) {
+          setState(() {
+            controlState = controlState.map((key, value) => MapEntry(key, false));
+          });
+        } else {
+          setState(() {
+            for (var deviceState in deviceStates) {
+              final label = deviceState['device_label'];
+              final state = deviceState['state'];
+              controlState[label] = state;
+            }
 
-            controlState[label] = state;
-          }
-
-          final now = DateTime.now();
-          lastUpdate =
-              "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+            final now = DateTime.now();
+            lastUpdate =
+                "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
           _saveLastUpdate(lastUpdate);
-        });
+          });
+        }
       } else {
-        print('Failed to fetch control state: ${response.statusCode}');
+        setState(() {
+          controlState = controlState.map((key, value) => MapEntry(key, false));
+        });
       }
     } catch (e) {
-      print('Error fetching control state: $e');
+      print('Error fetching sensor data: $e');
     }
-  }
-
-  void _showAuthDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Необходима авторизация'),
-          content: Text('Для управления устройствами необходимо авторизоваться.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Просто скрываем окно
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.purple,
-              ),
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> updateControlState(String controlName, bool state) async {
 
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/0000BFE7/control/$controlName/${state ? '1' : '0'}');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
     try {
       final response = await http.post(url);
       if (response.statusCode == 200) {
@@ -122,8 +130,40 @@ class ControlScreenState extends State<ControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!GlobalAuth.isLoggedIn) {
+      return Center(
+        child: ElevatedButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoginScreen(
+                  onUpdate: widget.onLoadGreenhouses,
+                ),
+              ),
+            );
+            GlobalAuth.initialize();
+          },
+          child: Text('Войти'),
+        ),
+      );
+    }
+
+    if (selectedGreenhouseGuid == null) {
+      return Center(
+        child: Text(
+          'Перейдите в профиль для привязки теплицы.',
+          style: TextStyle(
+            fontSize: 16,
+            fontStyle: FontStyle.italic,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
     return RefreshIndicator(
-      onRefresh: () => fetchControlState(manualRefresh: true),
+      onRefresh: loadSelectedGreenhouse,
       child: Column(
         children: [
           Padding(
@@ -189,25 +229,27 @@ class ControlScreenState extends State<ControlScreen> {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
-            Switch(
-              value: controlState[controlName] ?? false,
-              activeColor: Colors.white, // Цвет ползунка, когда включён
-              activeTrackColor: Colors.green, // Цвет трека, когда включён
-              inactiveThumbColor: Colors.grey, // Цвет ползунка, когда выключен
-              inactiveTrackColor: Colors.grey.shade300, // Цвет трека, когда выключен
-              onChanged: (bool value) async {
-                final prefs = await SharedPreferences.getInstance();
-                final token = prefs.getString('access_token');
-
-                if (token == null || token.isEmpty) {
-                  _showAuthDialog();
-                  return;
-                }
-                setState(() {
-                  controlState[controlName] = value;
-                });
-                updateControlState(controlName, value);
-              },
+            controlState[controlName] == false
+              ? Text(
+                  '-',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                )
+              : Switch(
+                value: controlState[controlName] ?? false,
+                activeColor: Colors.white, // Цвет ползунка, когда включён
+                activeTrackColor: Colors.green, // Цвет трека, когда включён
+                inactiveThumbColor: Colors.grey, // Цвет ползунка, когда выключен
+                inactiveTrackColor: Colors.grey.shade300, // Цвет трека, когда выключен
+                onChanged: (bool value){
+                  setState(() {
+                    controlState[controlName] = value;
+                  });
+                  updateControlState(controlName, value);
+                },
             ),
           ],
         ),

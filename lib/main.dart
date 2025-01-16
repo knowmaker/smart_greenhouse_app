@@ -78,8 +78,7 @@ class MainScreenState extends State<MainScreen> {
       //   _selectedGreenhouse = null;
       // }
       if (savedGuid != null) {
-        _selectedGreenhouse =
-            _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid, orElse: () => _greenhouses.first);
+        _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid, orElse: () => _greenhouses.first);
       }
     }
   }
@@ -98,8 +97,14 @@ class MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
-      SensorScreen(onLoadGreenhouses: _loadGreenhouses),
-      ControlScreen(),
+      SensorScreen(
+        greenhouse: _selectedGreenhouse,
+        onLoadGreenhouses: _loadGreenhouses,
+      ),
+      ControlScreen(
+        greenhouse: _selectedGreenhouse,
+        onLoadGreenhouses: _loadGreenhouses,
+      ),
       SettingsScreen(),
       UserScreen(onLoadGreenhouses: _loadGreenhouses),
     ];

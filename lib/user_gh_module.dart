@@ -107,7 +107,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
     );
   }
 
-  Future<void> _sendBindRequest(BuildContext context, String guid, String pin) async {
+    Future<void> _sendBindRequest(BuildContext context, String guid, String pin) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
@@ -141,10 +141,44 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
     }
   }
 
+  Future<void> _unbindGreenhouse(BuildContext context, String guid) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    final response = await http.patch(
+      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/unbind'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: '{"guid": "$guid"}',
+    );
+
+    if (response.statusCode == 200) {
+      Fluttertoast.showToast(
+        msg: "Теплица успешно отвязана!",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+      await _fetchGreenhouses();
+      await widget.onUpdate();
+    } else {
+      Fluttertoast.showToast(
+        msg: "Ошибка: ${response.body}",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: MediaQuery.of(context).size.width * 0.9, // Почти на всю ширину экрана
+      width: MediaQuery.of(context).size.width * 0.92,
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.black),
@@ -165,10 +199,28 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
               final index = entry.key + 1;
               final greenhouse = entry.value;
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Text(
-                  '$index. ${greenhouse['title']} (${greenhouse['guid']})',
-                  style: TextStyle(fontSize: 16),
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$index. ${greenhouse['title']} (${greenhouse['guid']})',
+                        style: TextStyle(fontSize: 16),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_forever, size: 20, color: Colors.red),
+                      onPressed: () => _unbindGreenhouse(context, greenhouse['guid']!),
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                      style: const ButtonStyle(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
                 ),
               );
             }),
