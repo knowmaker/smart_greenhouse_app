@@ -32,9 +32,11 @@ class LoginScreenState extends State<LoginScreen> {
       await _login();
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _login() async {

@@ -124,11 +124,7 @@ class SensorScreenState extends State<SensorScreen> {
           onPressed: () async {
             await Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => LoginScreen(
-                  onUpdate: widget.onLoadGreenhouses,
-                ),
-              ),
+              MaterialPageRoute( builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses)),
             );
             GlobalAuth.initialize();
           },
@@ -140,9 +136,9 @@ class SensorScreenState extends State<SensorScreen> {
     if (selectedGreenhouseGuid == null) {
       return Center(
         child: Text(
-          'Перейдите в профиль для привязки теплицы.',
+          'Перейдите в профиль для привязки теплицы',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 20,
             fontStyle: FontStyle.italic,
             color: Colors.grey,
           ),

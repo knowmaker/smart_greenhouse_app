@@ -15,9 +15,9 @@ class GlobalAuth {
   //   isLoggedIn = true;
   // }
 
-  // static Future<void> logout() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.remove('access_token');
-  //   isLoggedIn = false;
-  // }
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    isLoggedIn = false;
+  }
 }

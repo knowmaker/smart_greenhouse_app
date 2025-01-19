@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'user_gh_module.dart';
 import 'login_screen.dart';
 import 'dart:convert';
+import 'auth_provider.dart';
 
 class UserScreen extends StatefulWidget {
   final Future<void> Function() onLoadGreenhouses;
@@ -15,7 +16,6 @@ class UserScreen extends StatefulWidget {
 }
 
 class UserScreenState extends State<UserScreen> {
-  bool _isLoggedIn = false;
   String? _email;
   String? _firstName;
   String? _lastName;
@@ -23,65 +23,56 @@ class UserScreenState extends State<UserScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    GlobalAuth.initialize();
+    _fetchUserData();
   }
 
-  Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    if (token != null && token.isNotEmpty) {
-      await _fetchUserData();
-      if (mounted) {
-        setState(() {
-          _isLoggedIn = true;
-        });
-      }
-    }
-  }
 
   Future<void> _fetchUserData() async {
+    if (!GlobalAuth.isLoggedIn) return;
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/me');
 
-    final response = await http.get(
-      Uri.parse('http://alexandergh2023.tplinkdns.com/users/me'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = Map<String, dynamic>.from(json.decode(response.body));
+      if (response.statusCode == 200) {
+        final data = Map<String, dynamic>.from(json.decode(response.body));
 
-      if (mounted) {
         setState(() {
           _email = data['email'];
           _firstName = data['first_name'];
           _lastName = data['last_name'];
         });
+      } else {
+        Fluttertoast.showToast(
+          msg: "Ошибка при загрузке данных пользователя: ${response.statusCode}",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
-    } else {
-      Fluttertoast.showToast(
-        msg: "Ошибка при загрузке данных пользователя: ${response.statusCode}",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.TOP,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+    } catch (e) {
+      print('Error fetching user data: $e');
     }
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = false;
-        _email = null;
-        _firstName = null;
-        _lastName = null;
-      });
-    }
+    GlobalAuth.logout();
+    setState(() {
+      _email = null;
+      _firstName = null;
+      _lastName = null;
+    });
     Fluttertoast.showToast(
       msg: "Вы вышли из аккаунта",
       toastLength: Toast.LENGTH_SHORT,
@@ -127,7 +118,7 @@ class UserScreenState extends State<UserScreen> {
     return Scaffold(
       body: Align(
         alignment: Alignment.topCenter,
-        child: _isLoggedIn
+        child: GlobalAuth.isLoggedIn
             ? SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -199,11 +190,13 @@ class UserScreenState extends State<UserScreen> {
                   ),
                   SizedBox(height: 10),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses)),
                       );
+                      GlobalAuth.initialize();
+                      await _fetchUserData();
                     },
                     child: Text('Войти'),
                   ),

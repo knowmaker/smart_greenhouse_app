@@ -70,15 +70,13 @@ class MainScreenState extends State<MainScreen> {
 
       final savedGuid = prefs.getString('selected_greenhouse_guid');
 
-      // if (savedGuid != null && _greenhouses.any((gh) => gh['guid'] == savedGuid)) {
-      //   _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid);
-      // } else if (_greenhouses.isNotEmpty) {
-      //   _selectedGreenhouse = _greenhouses.first;
-      // } else {
-      //   _selectedGreenhouse = null;
-      // }
-      if (savedGuid != null) {
-        _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid, orElse: () => _greenhouses.first);
+      if (savedGuid != null && _greenhouses.any((gh) => gh['guid'] == savedGuid)) {
+        _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid);
+      } else if (_greenhouses.isNotEmpty) {
+        _selectedGreenhouse = _greenhouses.first;
+        await _saveSelectedGreenhouse(_selectedGreenhouse!);
+      } else {
+        _selectedGreenhouse = null;
       }
     }
   }
@@ -111,56 +109,74 @@ class MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            if (_selectedGreenhouse == null)
-              Text('SMART GREENHOUSE')
-            else
-              Flexible(
-                child: Row(
-                  children: [
-                    Icon(Icons.holiday_village_rounded, size: 24),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        _selectedGreenhouse!['title']!,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: TextStyle(fontSize: 20),
+        title: SizedBox(
+          height: 56, // Фиксированная высота AppBar для выравнивания
+          child: Row(
+            children: [
+              if (_selectedGreenhouse == null)
+                Flexible(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [Colors.greenAccent, Colors.deepPurpleAccent],
+                    ).createShader(bounds),
+                    child: Text(
+                      'SMART GREENHOUSE',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white, // Цвет маски для видимости
+                        letterSpacing: 1.5, // Расширение текста
                       ),
                     ),
-                  ],
+                  ),
+                )
+              else
+                Flexible(
+                  child: Row(
+                    children: [
+                      Icon(Icons.holiday_village_rounded, size: 24),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _selectedGreenhouse!['title']!,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(fontSize: 20),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            if (GlobalAuth.isLoggedIn && _greenhouses.isNotEmpty)
-              IconButton(
-                icon: Icon(Icons.arrow_drop_down, size: 28),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) {
-                      return ListView.builder(
-                        itemCount: _greenhouses.length,
-                        itemBuilder: (context, index) {
-                          final greenhouse = _greenhouses[index];
-                          return ListTile(
-                            leading: Icon(Icons.house),
-                            title: Text(greenhouse['title']!),
-                            onTap: () {
-                              setState(() {
-                                _selectedGreenhouse = greenhouse;
-                              });
-                              _saveSelectedGreenhouse(greenhouse);
-                              Navigator.pop(context);
-                            },
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-          ],
+              if (GlobalAuth.isLoggedIn && _greenhouses.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.arrow_drop_down, size: 28),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return ListView.builder(
+                          itemCount: _greenhouses.length,
+                          itemBuilder: (context, index) {
+                            final greenhouse = _greenhouses[index];
+                            return ListTile(
+                              leading: Icon(Icons.house),
+                              title: Text(greenhouse['title']!),
+                              onTap: () {
+                                setState(() {
+                                  _selectedGreenhouse = greenhouse;
+                                });
+                                _saveSelectedGreenhouse(greenhouse);
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+            ],
+          ),
         ),
       ),
       body: screens[_selectedIndex],
