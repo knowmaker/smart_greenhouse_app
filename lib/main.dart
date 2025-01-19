@@ -50,7 +50,13 @@ class MainScreenState extends State<MainScreen> {
   Future<void> _loadGreenhouses() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    if (token == null) return;
+    if (token == null) {
+      setState(() {
+        _selectedGreenhouse = null;
+        _greenhouses = [];
+      });
+      return;
+    }
 
     final response = await http.get(
       Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
@@ -93,119 +99,119 @@ class MainScreenState extends State<MainScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      SensorScreen(
-        greenhouse: _selectedGreenhouse,
-        onLoadGreenhouses: _loadGreenhouses,
-      ),
-      ControlScreen(
-        greenhouse: _selectedGreenhouse,
-        onLoadGreenhouses: _loadGreenhouses,
-      ),
-      SettingsScreen(),
-      UserScreen(onLoadGreenhouses: _loadGreenhouses),
-    ];
+    Widget build(BuildContext context) {
+      final List<Widget> screens = [
+        SensorScreen(
+          greenhouse: _selectedGreenhouse,
+          onLoadGreenhouses: _loadGreenhouses,
+        ),
+        ControlScreen(
+          greenhouse: _selectedGreenhouse,
+          onLoadGreenhouses: _loadGreenhouses,
+        ),
+        SettingsScreen(),
+        UserScreen(onLoadGreenhouses: _loadGreenhouses),
+      ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: SizedBox(
-          height: 56, // Фиксированная высота AppBar для выравнивания
-          child: Row(
-            children: [
-              if (_selectedGreenhouse == null)
-                Flexible(
-                  child: ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      colors: [Colors.greenAccent, Colors.deepPurpleAccent],
-                    ).createShader(bounds),
-                    child: Text(
-                      'SMART GREENHOUSE',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white, // Цвет маски для видимости
-                        letterSpacing: 1.5, // Расширение текста
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Flexible(
-                  child: Row(
-                    children: [
-                      Icon(Icons.holiday_village_rounded, size: 24),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _selectedGreenhouse!['title']!,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(fontSize: 20),
+      return Scaffold(
+        appBar: AppBar(
+          title: SizedBox(
+            height: 56,
+            child: Row(
+              children: [
+                if (!GlobalAuth.isLoggedIn || _greenhouses.isEmpty)
+                  Flexible(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [Colors.greenAccent, Colors.deepPurpleAccent],
+                      ).createShader(bounds),
+                      child: Text(
+                        'SMART GREENHOUSE',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                    ],
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Icon(Icons.holiday_village_rounded, size: 24),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _selectedGreenhouse?['title'] ?? _greenhouses.first['title']!,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              if (GlobalAuth.isLoggedIn && _greenhouses.isNotEmpty)
-                IconButton(
-                  icon: Icon(Icons.arrow_drop_down, size: 28),
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (context) {
-                        return ListView.builder(
-                          itemCount: _greenhouses.length,
-                          itemBuilder: (context, index) {
-                            final greenhouse = _greenhouses[index];
-                            return ListTile(
-                              leading: Icon(Icons.house),
-                              title: Text(greenhouse['title']!),
-                              onTap: () {
-                                setState(() {
-                                  _selectedGreenhouse = greenhouse;
-                                });
-                                _saveSelectedGreenhouse(greenhouse);
-                                Navigator.pop(context);
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-            ],
+                if (GlobalAuth.isLoggedIn && _greenhouses.length > 1)
+                  IconButton(
+                    icon: Icon(Icons.arrow_drop_down, size: 28),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) {
+                          return ListView.builder(
+                            itemCount: _greenhouses.length,
+                            itemBuilder: (context, index) {
+                              final greenhouse = _greenhouses[index];
+                              return ListTile(
+                                leading: Icon(Icons.house),
+                                title: Text(greenhouse['title']!),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedGreenhouse = greenhouse;
+                                  });
+                                  _saveSelectedGreenhouse(greenhouse);
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-      body: screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sensors),
-            label: 'Состояние',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_remote),
-            label: 'Управление',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Настройки',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Профиль',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green[700],
-        selectedFontSize: 14,
-        unselectedFontSize: 12,
-        onTap: _onItemTapped,
-      ),
-    );
-  }
+        body: screens[_selectedIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.sensors),
+              label: 'Состояние',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_remote),
+              label: 'Управление',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Настройки',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Профиль',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: Colors.green[700],
+          selectedFontSize: 14,
+          unselectedFontSize: 12,
+          onTap: _onItemTapped,
+        ),
+      );
+    }
 }

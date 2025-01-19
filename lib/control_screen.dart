@@ -128,21 +128,63 @@ class ControlScreenState extends State<ControlScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!GlobalAuth.isLoggedIn) {
+        if (!GlobalAuth.isLoggedIn) {
       return Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => LoginScreen(
-                  onUpdate: widget.onLoadGreenhouses,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'images/smgh_logo.png',
+                width: 200,
+                height: 200,
+              ),
+              const SizedBox(height: 24),
+              // Приветственное сообщение
+              Text(
+                'Добро пожаловать в Smart Greenhouse!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[800],
                 ),
               ),
-            );
-            GlobalAuth.initialize();
-          },
-          child: Text('Войти'),
+              const SizedBox(height: 16),
+              Text(
+                'С помощью нашего приложения вы можете:\n\n'
+                '🌱 Следить за состоянием вашей теплицы\n'
+                '⚙️ Управлять оборудованием и настройками\n'
+                '🔔 Получать уведомления о важных событиях\n',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Кнопка входа
+              ElevatedButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses),
+                    ),
+                  );
+                  GlobalAuth.initialize();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                child: const Text('Войти'),
+              ),
+            ],
+          ),
         ),
       );
     }

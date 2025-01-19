@@ -115,93 +115,128 @@ class UserScreenState extends State<UserScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: GlobalAuth.isLoggedIn
-            ? SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      color: Colors.green[300],
-                      child: Center(
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.grey[300],
-                          child: Icon(Icons.person, size: 50, color: Colors.grey[700]),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildInfoRow(Icons.email, 'Email', _email),
-                          _buildInfoRow(Icons.person, 'Имя', _firstName),
-                          _buildInfoRow(Icons.person_outline, 'Фамилия', _lastName),
-                        ],
-                      ),
-                    ),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min, // Минимальный размер колонки по вертикали
-                        children: [
-                          Text(
-                            'Мои теплицы',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center, // Центрирование текста
-                          ),
-                          SizedBox(height: 10), // Отступ между текстом и модулем
-                          UserGreenhouseModule(onUpdate: widget.onLoadGreenhouses),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: _logout,
-                          child: Text('Выйти из аккаунта'),
-                        ),
-                      ),
-                    ),
-                  ],
+    if (!GlobalAuth.isLoggedIn) {
+      return Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'images/smgh_logo.png',
+                  width: 200,
+                  height: 200,
                 ),
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: 24),
+                Text(
+                  'Добро пожаловать в Smart Greenhouse!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green[800],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'С помощью нашего приложения вы можете:\n\n'
+                  '🌱 Следить за состоянием вашей теплицы\n'
+                  '⚙️ Управлять оборудованием и настройками\n'
+                  '🔔 Получать уведомления о важных событиях\n',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses),
+                      ),
+                    );
+                    GlobalAuth.initialize();
+                    await _fetchUserData();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  child: const Text('Войти'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              color: Colors.green[300],
+              child: Center(
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey[300],
+                  child: Icon(Icons.person, size: 50, color: Colors.grey[700]),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
                 children: [
-                  Icon(Icons.account_circle, size: 100, color: Colors.grey),
-                  SizedBox(height: 20),
-                  Text(
-                    'Вы не авторизованы',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                  SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses)),
-                      );
-                      GlobalAuth.initialize();
-                      await _fetchUserData();
-                    },
-                    child: Text('Войти'),
-                  ),
+                  _buildInfoRow(Icons.email, 'Email', _email),
+                  _buildInfoRow(Icons.person, 'Имя', _firstName),
+                  _buildInfoRow(Icons.person_outline, 'Фамилия', _lastName),
                 ],
               ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Мои теплицы',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  UserGreenhouseModule(onUpdate: widget.onLoadGreenhouses),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _logout,
+                  child: Text('Выйти из аккаунта'),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
