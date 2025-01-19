@@ -53,16 +53,23 @@ class UserScreenState extends State<UserScreen> {
           _lastName = data['last_name'];
         });
       } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
         Fluttertoast.showToast(
-          msg: "Ошибка при загрузке данных пользователя: ${response.statusCode}",
-          toastLength: Toast.LENGTH_SHORT,
+          msg: "Ошибка при загрузке данных пользователя: $errorDetail",
+          toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.TOP,
           backgroundColor: Colors.red,
           textColor: Colors.white,
         );
       }
     } catch (e) {
-      print('Error fetching user data: $e');
+      Fluttertoast.showToast(
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
     }
   }
 
@@ -75,9 +82,9 @@ class UserScreenState extends State<UserScreen> {
     });
     Fluttertoast.showToast(
       msg: "Вы вышли из аккаунта",
-      toastLength: Toast.LENGTH_SHORT,
+      toastLength: Toast.LENGTH_LONG,
       gravity: ToastGravity.TOP,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.green,
       textColor: Colors.white,
     );
   }

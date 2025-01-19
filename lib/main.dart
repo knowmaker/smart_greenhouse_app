@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'sensor_screen.dart';
 import 'control_screen.dart';
 import 'settings_screen.dart';
@@ -50,6 +51,7 @@ class MainScreenState extends State<MainScreen> {
   Future<void> _loadGreenhouses() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
+
     if (token == null) {
       setState(() {
         _selectedGreenhouse = null;
@@ -58,32 +60,51 @@ class MainScreenState extends State<MainScreen> {
       return;
     }
 
-    final response = await http.get(
-      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        _greenhouses = data.map((item) {
-          return {
-            'guid': item['guid'] as String,
-            'title': item['title'] as String,
-          };
-        }).toList();
-      });
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _greenhouses = data.map((item) {
+            return {
+              'guid': item['guid'] as String,
+              'title': item['title'] as String,
+            };
+          }).toList();
+        });
 
-      final savedGuid = prefs.getString('selected_greenhouse_guid');
+        final savedGuid = prefs.getString('selected_greenhouse_guid');
 
-      if (savedGuid != null && _greenhouses.any((gh) => gh['guid'] == savedGuid)) {
-        _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid);
-      } else if (_greenhouses.isNotEmpty) {
-        _selectedGreenhouse = _greenhouses.first;
-        await _saveSelectedGreenhouse(_selectedGreenhouse!);
+        if (savedGuid != null && _greenhouses.any((gh) => gh['guid'] == savedGuid)) {
+          _selectedGreenhouse = _greenhouses.firstWhere((gh) => gh['guid'] == savedGuid);
+        } else if (_greenhouses.isNotEmpty) {
+          _selectedGreenhouse = _greenhouses.first;
+          await _saveSelectedGreenhouse(_selectedGreenhouse!);
+        } else {
+          _selectedGreenhouse = null;
+        }
       } else {
-        _selectedGreenhouse = null;
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: errorDetail,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Ошибка сервера',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
     }
   }
 

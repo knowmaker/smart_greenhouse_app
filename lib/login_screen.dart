@@ -41,41 +41,55 @@ class LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/login');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'email': _emailController.text,
-        'password': _passwordController.text,
-      }),
-    );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final token = data['access_token'];
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
+      );
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', token);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final token = data['access_token'];
 
-      if (mounted) {
-        Fluttertoast.showToast(
-          msg: "Успешный вход!",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        Navigator.pop(context);
-        await widget.onUpdate();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', token);
+
+        if (mounted) {
+          Fluttertoast.showToast(
+            msg: "Успешный вход!",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          Navigator.pop(context);
+          await widget.onUpdate();
+        }
+      } else {
+        if (mounted) {
+          final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+          Fluttertoast.showToast(
+            msg: "Ошибка входа: $errorDetail",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+        }
       }
-    } else {
+    } catch (e) {
       if (mounted) {
         Fluttertoast.showToast(
-          msg: "Ошибка входа: ${response.statusCode}",
-          toastLength: Toast.LENGTH_SHORT,
+          msg: "Ошибка сервера",
+          toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.TOP,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
+          backgroundColor: Colors.yellow,
+          textColor: Colors.black,
         );
       }
     }
@@ -83,38 +97,52 @@ class LoginScreenState extends State<LoginScreen> {
 
   Future<void> _register() async {
     final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'email': _emailController.text,
-        'password': _passwordController.text,
-        'last_name': _lastNameController.text,
-        'first_name': _firstNameController.text,
-      }),
-    );
 
-    if (response.statusCode == 201) {
-      if (mounted) {
-        Fluttertoast.showToast(
-          msg: "Регистрация успешна! Перейдите к авторизации",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        setState(() {
-          _isRegistering = false;
-        });
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+          'last_name': _lastNameController.text,
+          'first_name': _firstNameController.text,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        if (mounted) {
+          Fluttertoast.showToast(
+            msg: "Регистрация успешна! Перейдите к авторизации",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          setState(() {
+            _isRegistering = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+          Fluttertoast.showToast(
+            msg: "Ошибка регистрации: $errorDetail",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+        }
       }
-    } else {
+    } catch (e) {
       if (mounted) {
         Fluttertoast.showToast(
-          msg: "Ошибка регистрации: ${response.statusCode}",
-          toastLength: Toast.LENGTH_SHORT,
+          msg: "Ошибка сервера",
+          toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.TOP,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
+          backgroundColor: Colors.yellow,
+          textColor: Colors.black,
         );
       }
     }

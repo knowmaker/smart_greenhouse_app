@@ -25,31 +25,44 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
-    final response = await http.get(
-      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+    if (token == null) return;
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+    try {
+      final response = await http.get(
+        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-      setState(() {
-        _greenhouses = data.map((item) {
-          return {
-            'guid': item['guid'] as String,
-            'title': item['title'] as String,
-          };
-        }).toList();
-      });
-    } else {
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+
+        setState(() {
+          _greenhouses = data.map((item) {
+            return {
+              'guid': item['guid'] as String,
+              'title': item['title'] as String,
+            };
+          }).toList();
+        });
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка при загрузке теплиц: $errorDetail",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
       Fluttertoast.showToast(
-        msg: "Ошибка при загрузке теплиц: ${response.statusCode}",
-        toastLength: Toast.LENGTH_SHORT,
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.TOP,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
       );
     }
   }
