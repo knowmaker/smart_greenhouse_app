@@ -141,7 +141,7 @@ class ControlScreenState extends State<ControlScreen> {
 
   @override
   Widget build(BuildContext context) {
-        if (!GlobalAuth.isLoggedIn) {
+    if (!GlobalAuth.isLoggedIn) {
       return Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -154,9 +154,8 @@ class ControlScreenState extends State<ControlScreen> {
                 height: 200,
               ),
               const SizedBox(height: 24),
-              // Приветственное сообщение
               Text(
-                'Добро пожаловать в Smart Greenhouse!',
+                'Добро пожаловать\nв Smart Greenhouse!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
@@ -177,7 +176,6 @@ class ControlScreenState extends State<ControlScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Кнопка входа
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
@@ -186,7 +184,7 @@ class ControlScreenState extends State<ControlScreen> {
                       builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses),
                     ),
                   );
-                  GlobalAuth.initialize();
+                  await GlobalAuth.initialize();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[700],

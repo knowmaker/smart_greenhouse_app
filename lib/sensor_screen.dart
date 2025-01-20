@@ -138,9 +138,8 @@ class SensorScreenState extends State<SensorScreen> {
                 height: 200,
               ),
               const SizedBox(height: 24),
-              // Приветственное сообщение
               Text(
-                'Добро пожаловать в Smart Greenhouse!',
+                'Добро пожаловать\nв Smart Greenhouse!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
@@ -161,7 +160,6 @@ class SensorScreenState extends State<SensorScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Кнопка входа
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
@@ -170,7 +168,7 @@ class SensorScreenState extends State<SensorScreen> {
                       builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses),
                     ),
                   );
-                  GlobalAuth.initialize();
+                  await GlobalAuth.initialize();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[700],

@@ -74,7 +74,7 @@ class UserScreenState extends State<UserScreen> {
   }
 
   Future<void> _logout() async {
-    GlobalAuth.logout();
+    await GlobalAuth.logout();
     setState(() {
       _email = null;
       _firstName = null;
@@ -87,6 +87,7 @@ class UserScreenState extends State<UserScreen> {
       backgroundColor: Colors.green,
       textColor: Colors.white,
     );
+    await widget.onLoadGreenhouses();
   }
 
   Widget _buildInfoRow(IconData icon, String label, String? content) {
@@ -137,7 +138,7 @@ class UserScreenState extends State<UserScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Добро пожаловать в Smart Greenhouse!',
+                  'Добро пожаловать\nв Smart Greenhouse!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -166,8 +167,8 @@ class UserScreenState extends State<UserScreen> {
                         builder: (context) => LoginScreen(onUpdate: widget.onLoadGreenhouses),
                       ),
                     );
-                    GlobalAuth.initialize();
-                    await _fetchUserData();
+                    await GlobalAuth.initialize();
+                    _fetchUserData();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
