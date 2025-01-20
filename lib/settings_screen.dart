@@ -17,11 +17,16 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class SettingsScreenState extends State<SettingsScreen> {
-  Map<String, bool?> controlState = {
-    'ventilation': null,
-    'watering1': null,
-    'watering2': null,
-    'lighting': null,
+  Map<String, dynamic> settingData = {
+    'airTempThreshold': '-',
+    'airHumThreshold': '-',
+    'soilMoistThreshold1': '-',
+    'soilMoistThreshold2': '-',
+    'waterTempThreshold1': '-',
+    'waterTempThreshold2': '-',
+    'waterLevelThreshold': '-',
+    'lightThreshold': '-',
+    'motionThreshold': '-',
   };
 
   String lastUpdate = "Никогда";
@@ -62,16 +67,16 @@ class SettingsScreenState extends State<SettingsScreen> {
       selectedGreenhouseGuid = guid;
     });
     if (GlobalAuth.isLoggedIn && guid != null) {
-      fetchControlState();
+      fetchSettingState();
     }
   }
 
-  Future<void> fetchControlState() async {
+  Future<void> fetchSettingState() async {
     if (!GlobalAuth.isLoggedIn || selectedGreenhouseGuid == null) return;
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/settings/$selectedGreenhouseGuid');
 
     try {
       final response = await http.get(
@@ -84,16 +89,16 @@ class SettingsScreenState extends State<SettingsScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final deviceStates = data['latest_device_states'] as List;
+        final settings = data['latest_settings'] as List;
 
         setState(() {
-          if (deviceStates.isEmpty) {
-            controlState.updateAll((key, value) => null);
+          if (settings.isEmpty) {
+            settingData = settingData.map((key, value) => MapEntry(key, '-'));
           } else {
-            for (var deviceState in deviceStates) {
-              final label = deviceState['device_label'];
-              final state = deviceState['state'];
-              controlState[label] = state;
+            for (var setting in settings) {
+              final label = setting['parameter_label'];
+              final value = setting['value'];
+              settingData[label] = value;
             }
 
             final now = DateTime.now();
@@ -104,7 +109,7 @@ class SettingsScreenState extends State<SettingsScreen> {
         });
       } else {
         setState(() {
-          controlState.updateAll((key, value) => null);
+          settingData = settingData.map((key, value) => MapEntry(key, '-'));
         });
       }
     } catch (e) {
@@ -118,15 +123,14 @@ class SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> updateControlState(String controlName, bool state) async {
-    final url = Uri.parse(
-        'http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
+  Future<void> updateSetting() async {
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/settings/$selectedGreenhouseGuid');
     try {
       final response = await http.post(url);
       if (response.statusCode == 200) {
-        print('$controlName updated to ${state ? 'ON' : 'OFF'}');
+        print('Настройки обновлены');
       } else {
-        print('Failed to update $controlName: ${response.statusCode}');
+        print('Ошибка обновления настроек');
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -218,30 +222,54 @@ class SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(0),
             child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Последнее обновление: $lastUpdate',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                  fontStyle: FontStyle.italic,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: updateSetting,
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.lightGreenAccent,
+                    foregroundColor: Colors.purple,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: const RoundedRectangleBorder(),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  child: const Text('Применить все изменения и сохранить'),
                 ),
               ),
             ),
           ),
           Expanded(
             child: GridView.count(
-              crossAxisCount: 2,
+              crossAxisCount: 1,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
+              childAspectRatio: 2,
               padding: EdgeInsets.all(16.0),
               children: [
-                buildControlCard('Проветривание', 'ventilation', Icons.air),
-                buildControlCard('Освещение', 'lighting', Icons.light_sharp),
-                buildControlCard('Полив грядки 1', 'watering1', Icons.opacity),
-                buildControlCard('Полив грядки 2', 'watering2', Icons.opacity),
+                buildSettingCard('Температура воздуха', settingData['airTempThreshold'], '°C',
+                    Icons.thermostat, min: -10, max: 40),
+                buildSettingCard('Влажность воздуха', settingData['airHumThreshold'], '%',
+                    Icons.water_drop, min: 0, max: 100),
+                buildSettingCard('Влажность почвы грядки 1', settingData['soilMoistThreshold1'], '%',
+                    Icons.grass, min: 0, max: 100),
+                buildSettingCard('Влажность почвы грядки 2', settingData['soilMoistThreshold2'], '%',
+                    Icons.grass, min: 0, max: 100),
+                buildSettingCard('Температура воды 1', settingData['waterTempThreshold1'], '°C',
+                    Icons.opacity, min: 0, max: 50),
+                buildSettingCard('Температура воды 2', settingData['waterTempThreshold2'], '°C',
+                    Icons.opacity, min: 0, max: 50),
+                buildSettingCard('Уровень воды', settingData['waterLevelThreshold'], '/ 3',
+                    Icons.water, min: 0, max: 3),
+                buildSettingCard('Освещенность', settingData['lightThreshold'], '%', Icons.light_mode,
+                    min: 0, max: 1000),
+                buildSettingCard('Движение', settingData['motionThreshold'], '', Icons.motion_photos_on,
+                    min: 0, max: 1),
               ],
             ),
           ),
@@ -250,8 +278,9 @@ class SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget buildControlCard(String title, String controlName, IconData icon) {
-    final state = controlState[controlName];
+  Widget buildSettingCard(String title, dynamic value, String unit, IconData icon, {required int min, required int max}) {
+    // int currentValue = (value != '-' && value != null) ? int.tryParse(value.toString()) ?? min : min;
+
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(
@@ -260,7 +289,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.purple[300]!, Colors.purple[500]!],
+            colors: [Colors.orange[300]!, Colors.orange[500]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -269,45 +298,61 @@ class SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: Colors.white),
-            SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
+            Row(
+              children: [
+                Icon(icon, size: 48, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 8),
-            SizedBox(
-              height: 40, // Установим фиксированную высоту, равную высоте Switch
-              child: state == null
-                  ? Center(
-                      child: Text(
-                        '-',
+            value != '-'
+                ? Column(
+                    children: [
+                      Text(
+                        "${value.toStringAsFixed(1)} $unit",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                    )
-                  : Switch(
-                      value: state,
-                      activeColor: Colors.white,
-                      activeTrackColor: Colors.green,
-                      inactiveThumbColor: Colors.grey,
-                      inactiveTrackColor: Colors.grey.shade300,
-                      onChanged: (bool value) {
-                        setState(() {
-                          controlState[controlName] = value;
-                        });
-                        updateControlState(controlName, value);
-                      },
+                      Slider(
+                        value: value.toDouble(),
+                        min: min.toDouble(),
+                        max: max.toDouble(),
+                        divisions: max - min,
+                        activeColor: Colors.white,
+                        inactiveColor: Colors.white54,
+                        onChanged: (newValue) {
+                          setState(() {
+                            settingData[title] = newValue.toStringAsFixed(1);
+                          });
+                        },
+                      ),
+                    ],
+                  )
+                : Center(
+                    child: Text(
+                      '-',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-            ),
+                  ),
           ],
         ),
       ),
