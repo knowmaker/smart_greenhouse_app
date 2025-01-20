@@ -130,7 +130,10 @@ class MainScreenState extends State<MainScreen> {
           greenhouse: _selectedGreenhouse,
           onLoadGreenhouses: _loadGreenhouses,
         ),
-        SettingsScreen(),
+        SettingsScreen(
+          greenhouse: _selectedGreenhouse,
+          onLoadGreenhouses: _loadGreenhouses,
+        ),
         UserScreen(onLoadGreenhouses: _loadGreenhouses),
       ];
 
