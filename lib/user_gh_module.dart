@@ -175,6 +175,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
         backgroundColor: Colors.green,
         textColor: Colors.white,
       );
+      await prefs.remove('selected_greenhouse_guid');
       await _fetchGreenhouses();
       await widget.onUpdate();
     } else {
