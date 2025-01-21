@@ -29,13 +29,11 @@ class SettingsScreenState extends State<SettingsScreen> {
     'motionThreshold': '-',
   };
 
-  String lastUpdate = "Никогда";
   String? selectedGreenhouseGuid;
 
   @override
   void initState() {
     super.initState();
-    _loadLastUpdate();
     GlobalAuth.initialize();
     loadSelectedGreenhouse();
   }
@@ -46,18 +44,6 @@ class SettingsScreenState extends State<SettingsScreen> {
     if (widget.greenhouse != oldWidget.greenhouse) {
       loadSelectedGreenhouse();
     }
-  }
-
-  Future<void> _loadLastUpdate() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      lastUpdate = prefs.getString('last_control_update') ?? "Никогда";
-    });
-  }
-
-  Future<void> _saveLastUpdate(String date) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('last_control_update', date);
   }
 
   Future<void> loadSelectedGreenhouse() async {
@@ -100,11 +86,6 @@ class SettingsScreenState extends State<SettingsScreen> {
               final value = setting['value'];
               settingData[label] = value;
             }
-
-            final now = DateTime.now();
-            lastUpdate =
-                "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-            _saveLastUpdate(lastUpdate);
           }
         });
       } else {
@@ -247,28 +228,27 @@ class SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: GridView.count(
               crossAxisCount: 1,
-              crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 2,
               padding: EdgeInsets.all(16.0),
               children: [
-                buildSettingCard('Температура воздуха', settingData['airTempThreshold'], '°C',
-                    Icons.thermostat, min: -10, max: 40),
-                buildSettingCard('Влажность воздуха', settingData['airHumThreshold'], '%',
+                buildSettingCard('Температура воздуха', 'airTempThreshold', '°C',
+                    Icons.thermostat, min: 0, max: 80),
+                buildSettingCard('Влажность воздуха', 'airHumThreshold', '%',
                     Icons.water_drop, min: 0, max: 100),
-                buildSettingCard('Влажность почвы грядки 1', settingData['soilMoistThreshold1'], '%',
+                buildSettingCard('Влажность почвы грядки 1', 'soilMoistThreshold1', '%',
                     Icons.grass, min: 0, max: 100),
-                buildSettingCard('Влажность почвы грядки 2', settingData['soilMoistThreshold2'], '%',
+                buildSettingCard('Влажность почвы грядки 2', 'soilMoistThreshold2', '%',
                     Icons.grass, min: 0, max: 100),
-                buildSettingCard('Температура воды 1', settingData['waterTempThreshold1'], '°C',
-                    Icons.opacity, min: 0, max: 50),
-                buildSettingCard('Температура воды 2', settingData['waterTempThreshold2'], '°C',
-                    Icons.opacity, min: 0, max: 50),
-                buildSettingCard('Уровень воды', settingData['waterLevelThreshold'], '/ 3',
+                buildSettingCard('Температура воды 1', 'waterTempThreshold1', '°C',
+                    Icons.opacity, min: 0, max: 70),
+                buildSettingCard('Температура воды 2', 'waterTempThreshold2', '°C',
+                    Icons.opacity, min: 0, max: 70),
+                buildSettingCard('Уровень воды', 'waterLevelThreshold', '/ 3',
                     Icons.water, min: 0, max: 3),
-                buildSettingCard('Освещенность', settingData['lightThreshold'], '%', Icons.light_mode,
+                buildSettingCard('Освещенность', 'lightThreshold', '%', Icons.light_mode,
                     min: 0, max: 1000),
-                buildSettingCard('Движение', settingData['motionThreshold'], '', Icons.motion_photos_on,
+                buildSettingCard('Движение', 'motionThreshold', '', Icons.motion_photos_on,
                     min: 0, max: 1),
               ],
             ),
@@ -278,8 +258,12 @@ class SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget buildSettingCard(String title, dynamic value, String unit, IconData icon, {required int min, required int max}) {
-    // int currentValue = (value != '-' && value != null) ? int.tryParse(value.toString()) ?? min : min;
+  Widget buildSettingCard(String title, String settingName, String unit, IconData icon,
+      {required int min, required int max}) {
+    final setting = settingData[settingName];
+    double currentValue = (setting != '-' && setting != null)
+        ? double.tryParse(setting.toString()) ?? min.toDouble()
+        : min.toDouble();
 
     return Card(
       elevation: 6,
@@ -295,8 +279,9 @@ class SettingsScreenState extends State<SettingsScreen> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
+        padding: const EdgeInsets.all(12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -316,12 +301,12 @@ class SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 8),
-            value != '-'
+            SizedBox(height: 6),
+            setting != '-'
                 ? Column(
                     children: [
                       Text(
-                        "${value.toStringAsFixed(1)} $unit",
+                        "${currentValue.toInt()} $unit",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -329,15 +314,16 @@ class SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       Slider(
-                        value: value.toDouble(),
+                        value: currentValue,
                         min: min.toDouble(),
                         max: max.toDouble(),
                         divisions: max - min,
-                        activeColor: Colors.white,
-                        inactiveColor: Colors.white54,
+                        activeColor: Colors.lightGreen,
+                        inactiveColor: Colors.lightGreen.withValues(alpha: 150),
+                        thumbColor: Colors.purple,
                         onChanged: (newValue) {
                           setState(() {
-                            settingData[title] = newValue.toStringAsFixed(1);
+                            settingData[settingName] = newValue.toInt();
                           });
                         },
                       ),

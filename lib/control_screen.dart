@@ -119,14 +119,37 @@ class ControlScreenState extends State<ControlScreen> {
   }
 
   Future<void> updateControlState(String controlName, bool state) async {
+    if (!GlobalAuth.isLoggedIn || selectedGreenhouseGuid == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
     final url = Uri.parse(
         'http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
     try {
-      final response = await http.post(url);
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
       if (response.statusCode == 200) {
-        print('$controlName updated to ${state ? 'ON' : 'OFF'}');
+        Fluttertoast.showToast(
+            msg: "Команда управления отправлена",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+        );
       } else {
-        print('Failed to update $controlName: ${response.statusCode}');
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -266,6 +289,7 @@ class ControlScreenState extends State<ControlScreen> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
+        padding: const EdgeInsets.all(6),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -282,7 +306,7 @@ class ControlScreenState extends State<ControlScreen> {
             ),
             SizedBox(height: 8),
             SizedBox(
-              height: 40, // Установим фиксированную высоту, равную высоте Switch
+              height: 40,
               child: state == null
                   ? Center(
                       child: Text(

@@ -260,6 +260,7 @@ class SensorScreenState extends State<SensorScreen> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
+        padding: const EdgeInsets.all(6),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
