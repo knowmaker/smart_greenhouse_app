@@ -105,13 +105,48 @@ class SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> updateSetting() async {
+    if (!GlobalAuth.isLoggedIn || selectedGreenhouseGuid == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
     final url = Uri.parse('http://alexandergh2023.tplinkdns.com/settings/$selectedGreenhouseGuid');
+
+    // Формируем список настроек для отправки
+    final newSettings = settingData.entries.map((entry) {
+      return {
+        "parameter_label": entry.key,
+        "value": entry.value,
+      };
+    }).toList();
+
     try {
-      final response = await http.post(url);
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          "new_settings": newSettings,
+        }),
+      );
+
       if (response.statusCode == 200) {
-        print('Настройки обновлены');
+        Fluttertoast.showToast(
+          msg: "Настройки успешно обновлены",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
       } else {
-        print('Ошибка обновления настроек');
+        Fluttertoast.showToast(
+          msg: "Ошибка обновления настроек",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -240,9 +275,9 @@ class SettingsScreenState extends State<SettingsScreen> {
                     Icons.grass, min: 0, max: 100),
                 buildSettingCard('Влажность почвы грядки 2', 'soilMoistThreshold2', '%',
                     Icons.grass, min: 0, max: 100),
-                buildSettingCard('Температура воды 1', 'waterTempThreshold1', '°C',
+                buildSettingCard('Температура воды\nдля грядки 1', 'waterTempThreshold1', '°C',
                     Icons.opacity, min: 0, max: 70),
-                buildSettingCard('Температура воды 2', 'waterTempThreshold2', '°C',
+                buildSettingCard('Температура воды\nдля грядки 2', 'waterTempThreshold2', '°C',
                     Icons.opacity, min: 0, max: 70),
                 buildSettingCard('Уровень воды', 'waterLevelThreshold', '/ 3',
                     Icons.water, min: 0, max: 3),
@@ -273,7 +308,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.orange[300]!, Colors.orange[500]!],
+            colors: [Colors.orange[500]!, Colors.orange[700]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
