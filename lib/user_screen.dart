@@ -20,6 +20,10 @@ class UserScreenState extends State<UserScreen> {
   String? _firstName;
   String? _lastName;
 
+  String? _editingField;
+  String? _newValue;
+
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +77,56 @@ class UserScreenState extends State<UserScreen> {
     }
   }
 
+  Future<void> _updateUserField(String field, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/update');
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({field: value}),
+      );
+
+      if (response.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: "Данные успешно обновлены!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        setState(() {
+          if (field == 'first_name') _firstName = value;
+          if (field == 'last_name') _lastName = value;
+          _editingField = null;
+        });
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
+    }
+  }
+
+
   Future<void> _logout() async {
     await GlobalAuth.logout();
     setState(() {
@@ -90,7 +144,9 @@ class UserScreenState extends State<UserScreen> {
     await widget.onLoadGreenhouses();
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String? content) {
+  Widget _buildInfoRow(IconData icon, String label, String? content, String field) {
+    final isEditing = _editingField == field;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -99,21 +155,48 @@ class UserScreenState extends State<UserScreen> {
             Icon(icon, color: Colors.grey),
             SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    content ?? '-',
-                    style: TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                ],
-              ),
+              child: isEditing
+                  ? TextField(
+                      autofocus: true,
+                      onChanged: (value) => _newValue = value,
+                      controller: TextEditingController(text: content),
+                      decoration: InputDecoration(
+                        border: UnderlineInputBorder(),
+                        hintText: 'Введите новое значение',
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          content ?? '-',
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                        ),
+                      ],
+                    ),
             ),
+            if (field.isNotEmpty)
+              SizedBox(width: 10),
+            if (field.isNotEmpty)
+              IconButton(
+                icon: Icon(isEditing ? Icons.check : Icons.edit,
+                    color: isEditing ? Colors.green : Colors.grey),
+                onPressed: () async {
+                  if (isEditing && _newValue != null && _newValue!.trim().isNotEmpty) {
+                    await _updateUserField(field, _newValue!.trim());
+                  } else {
+                    setState(() {
+                      _editingField = isEditing ? null : field;
+                      _newValue = content;
+                    });
+                  }
+                },
+              ),
           ],
         ),
         Divider(color: Colors.grey[300]),
@@ -207,9 +290,9 @@ class UserScreenState extends State<UserScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  _buildInfoRow(Icons.email, 'Email', _email),
-                  _buildInfoRow(Icons.person, 'Имя', _firstName),
-                  _buildInfoRow(Icons.person_outline, 'Фамилия', _lastName),
+                  _buildInfoRow(Icons.email, 'Email', _email, ''),
+                  _buildInfoRow(Icons.person, 'Имя', _firstName, 'first_name'),
+                  _buildInfoRow(Icons.person_outline, 'Фамилия', _lastName, 'last_name'),
                 ],
               ),
             ),

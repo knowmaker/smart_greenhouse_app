@@ -82,9 +82,9 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
               TextField(
                 onChanged: (value) => guid = value,
                 decoration: InputDecoration(
-                    labelText: 'GUID',
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
+                  labelText: 'GUID',
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey, width: 2.0),
                   ),
                 ),
@@ -93,9 +93,9 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
               TextField(
                 onChanged: (value) => pin = value,
                 decoration: InputDecoration(
-                    labelText: 'PIN',
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
+                  labelText: 'PIN',
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey, width: 2.0),
                   ),
                 ),
@@ -120,36 +120,148 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
     );
   }
 
-    Future<void> _sendBindRequest(BuildContext context, String guid, String pin) async {
+  Future<void> _sendBindRequest(BuildContext context, String guid, String pin) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
-    final response = await http.patch(
-      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/bind'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: '{"guid": "$guid", "pin": "$pin"}',
-    );
-
-    if (response.statusCode == 200) {
-      Fluttertoast.showToast(
-        msg: "Теплица успешно привязана!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.TOP,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
+    try {
+      final response = await http.patch(
+        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/bind'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: '{"guid": "$guid", "pin": "$pin"}',
       );
-      await _fetchGreenhouses();
-      await widget.onUpdate();
-    } else {
+
+      if (response.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: "Теплица успешно привязана!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        await _fetchGreenhouses();
+        await widget.onUpdate();
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
       Fluttertoast.showToast(
-        msg: "Ошибка: ${response.body}",
+        msg: "Ошибка сервера",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.TOP,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
+    }
+  }
+
+  Future<void> _editGreenhouse(BuildContext context, Map<String, String> greenhouse) async {
+    String newTitle = greenhouse['title']!;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Редактировать теплицу'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                onChanged: (value) => newTitle = value,
+                controller: TextEditingController(text: greenhouse['title']),
+                decoration: InputDecoration(
+                  labelText: 'Название теплицы',
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Отмена', style: TextStyle(color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _unbindGreenhouse(context, greenhouse['guid']!);
+                  },
+                  child: Text('Отвязать', style: TextStyle(color: Colors.red)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _updateGreenhouseTitle(greenhouse['guid']!, newTitle);
+                  },
+                  child: Text('Сохранить'),
+                ),
+              ],
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _updateGreenhouseTitle(String guid, String newTitle) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    try {
+      final response = await http.patch(
+        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/$guid'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'title': newTitle,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: "Название теплицы обновлено!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        await _fetchGreenhouses();
+        await widget.onUpdate();
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
       );
     }
   }
@@ -158,33 +270,44 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
-    final response = await http.patch(
-      Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/unbind'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: '{"guid": "$guid"}',
-    );
-
-    if (response.statusCode == 200) {
-      Fluttertoast.showToast(
-        msg: "Теплица успешно отвязана!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.TOP,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
+    try {
+      final response = await http.patch(
+        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/unbind'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: '{"guid": "$guid"}',
       );
-      await prefs.remove('selected_greenhouse_guid');
-      await _fetchGreenhouses();
-      await widget.onUpdate();
-    } else {
+
+      if (response.statusCode == 200) {
+        Fluttertoast.showToast(
+          msg: "Теплица успешно отвязана!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        await prefs.remove('selected_greenhouse_guid');
+        await _fetchGreenhouses();
+        await widget.onUpdate();
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
       Fluttertoast.showToast(
-        msg: "Ошибка: ${response.body}",
+        msg: "Ошибка сервера",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.TOP,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
       );
     }
   }
@@ -215,7 +338,6 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Row(
-                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
@@ -226,8 +348,8 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.delete_forever, size: 20, color: Colors.red),
-                      onPressed: () => _unbindGreenhouse(context, greenhouse['guid']!),
+                      icon: Icon(Icons.edit, size: 20, color: Colors.blue),
+                      onPressed: () => _editGreenhouse(context, greenhouse),
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
                       style: const ButtonStyle(
