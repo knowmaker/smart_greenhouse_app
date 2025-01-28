@@ -9,11 +9,25 @@ import 'user_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'auth_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then((_) {
     runApp(MyApp());
+  });
+  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    if (token != null) {
+      await GlobalAuth.sendFcmTokenToServer(token);
+    }
   });
 }
 
@@ -37,6 +51,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
+
   int _selectedIndex = 0;
   List<Map<String, String>> _greenhouses = [];
   Map<String, String>? _selectedGreenhouse;

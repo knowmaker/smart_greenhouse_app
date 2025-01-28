@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   final Future<void> Function() onUpdate;
@@ -58,6 +59,8 @@ class LoginScreenState extends State<LoginScreen> {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', token);
+
+        await GlobalAuth.sendFcmTokenToServer(token);
 
         if (mounted) {
           Fluttertoast.showToast(
