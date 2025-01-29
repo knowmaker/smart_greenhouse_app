@@ -60,7 +60,17 @@ class MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     GlobalAuth.initialize();
+    _requestNotificationPermission();
     _loadGreenhouses();
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
   }
 
   Future<void> _loadGreenhouses() async {

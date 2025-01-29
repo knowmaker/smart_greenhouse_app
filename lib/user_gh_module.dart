@@ -348,7 +348,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.edit, size: 20, color: Colors.blue),
+                      icon: Icon(Icons.edit, size: 20, color: Colors.purple),
                       onPressed: () => _editGreenhouse(context, greenhouse),
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),

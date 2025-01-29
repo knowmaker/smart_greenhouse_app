@@ -308,7 +308,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.orange[500]!, Colors.orange[700]!],
+            colors: [Colors.orange[300]!, Colors.orange[500]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
