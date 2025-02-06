@@ -13,6 +13,8 @@ class RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+
+  String? _hashCode;
   bool _isLoading = false;
 
   Future<void> _register() async {
@@ -35,15 +37,19 @@ class RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        _hashCode = data['hash_code'];
+
         if (mounted) {
           Fluttertoast.showToast(
-            msg: "Регистрация успешна. Подтвержите почту",
+            msg: "Регистрация успешна. Подтвердите почту",
             toastLength: Toast.LENGTH_LONG,
             gravity: ToastGravity.TOP,
             backgroundColor: Colors.green,
             textColor: Colors.white,
           );
-          Navigator.pop(context);
+
+          _showVerificationDialog();
         }
       } else {
         final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
@@ -67,6 +73,180 @@ class RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  void _showVerificationDialog({String? email}) {
+    final TextEditingController codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Подтверждение email"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10),
+              TextField(
+                controller: codeController,
+                decoration: InputDecoration(
+                  labelText: "Код подтверждения",
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Отмена", style: TextStyle(color: Colors.black)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _verifyEmail(codeController.text, email: email);
+              },
+              child: Text("Подтвердить"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _verifyEmail(String code, {String? email}) async {
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/verify-email');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email ?? _emailController.text,
+          'entered_code': code,
+          'received_hash': _hashCode,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          Fluttertoast.showToast(
+            msg: "Email подтверждён!",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
+    }
+  }
+
+  Future<void> _resendVerificationCode() async {
+    final TextEditingController emailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Запрос нового кода"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Отмена", style: TextStyle(color: Colors.black)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _requestNewCode(emailController.text);
+              },
+              child: Text("Запросить код"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _requestNewCode(String email) async {
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/resend-verification-code');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _hashCode = data['hash_code'];
+
+        Fluttertoast.showToast(
+          msg: "Новый код отправлен!",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+
+        _showVerificationDialog(email: email);
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
     }
   }
 
@@ -145,6 +325,11 @@ class RegisterScreenState extends State<RegisterScreen> {
                   ),
                   child: Text('Зарегистрироваться')
                 ),
+            SizedBox(height: 10),
+            TextButton(
+              onPressed: () => _resendVerificationCode(),
+              child: Text('Подтвердить почту', style: TextStyle(color: Colors.purple)),
+            ),
           ],
         ),
       ),

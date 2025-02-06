@@ -105,7 +105,7 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Отмена"),
+              child: Text("Отмена", style: TextStyle(color: Colors.black)),
             ),
             TextButton(
               onPressed: () async {
