@@ -40,6 +40,11 @@ class RegisterScreenState extends State<RegisterScreen> {
         final data = json.decode(response.body);
         _hashCode = data['hash_code'];
 
+        _emailController.clear();
+        _passwordController.clear();
+        _firstNameController.clear();
+        _lastNameController.clear();
+
         if (mounted) {
           Fluttertoast.showToast(
             msg: "Регистрация успешна. Подтвердите почту",
@@ -70,9 +75,11 @@ class RegisterScreenState extends State<RegisterScreen> {
         textColor: Colors.black,
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+        if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

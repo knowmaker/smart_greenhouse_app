@@ -47,6 +47,9 @@ class LoginScreenState extends State<LoginScreen> {
 
         await GlobalAuth.sendFcmTokenToServer(token);
 
+        _emailController.clear();
+        _passwordController.clear();
+
         if (mounted) {
           Fluttertoast.showToast(
             msg: "Успешный вход!",
@@ -77,9 +80,11 @@ class LoginScreenState extends State<LoginScreen> {
         textColor: Colors.black,
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+        if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

@@ -33,6 +33,8 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         final data = json.decode(response.body);
         _hashCode = data['hash_code'];
 
+        _emailController.clear();
+
         if (mounted) {
           Fluttertoast.showToast(
             msg: "Код смены пароля выслан на почту",
@@ -60,9 +62,11 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         textColor: Colors.black,
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+        if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
