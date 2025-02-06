@@ -162,7 +162,6 @@ class UserScreenState extends State<UserScreen> {
                       controller: TextEditingController(text: content),
                       decoration: InputDecoration(
                         border: UnderlineInputBorder(),
-                        hintText: 'Введите новое значение',
                       ),
                     )
                   : Column(

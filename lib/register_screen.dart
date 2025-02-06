@@ -1,32 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'auth_provider.dart';
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  final Future<void> Function() onUpdate;
-
-  LoginScreen({required this.onUpdate});
-
+class RegisterScreen extends StatefulWidget {
   @override
-  LoginScreenState createState() => LoginScreenState();
+  RegisterScreenState createState() => RegisterScreenState();
 }
 
-class LoginScreenState extends State<LoginScreen> {
+class RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     setState(() {
       _isLoading = true;
     });
 
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/login');
+    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/register');
 
     try {
       final response = await http.post(
@@ -35,33 +29,26 @@ class LoginScreenState extends State<LoginScreen> {
         body: json.encode({
           'email': _emailController.text,
           'password': _passwordController.text,
+          'last_name': _lastNameController.text,
+          'first_name': _firstNameController.text,
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final token = data['access_token'];
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', token);
-
-        await GlobalAuth.sendFcmTokenToServer(token);
-
+      if (response.statusCode == 201) {
         if (mounted) {
           Fluttertoast.showToast(
-            msg: "Успешный вход!",
+            msg: "Регистрация успешна. Подтвержите почту",
             toastLength: Toast.LENGTH_LONG,
             gravity: ToastGravity.TOP,
             backgroundColor: Colors.green,
             textColor: Colors.white,
           );
           Navigator.pop(context);
-          await widget.onUpdate();
         }
       } else {
         final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
         Fluttertoast.showToast(
-          msg: "Ошибка входа: $errorDetail",
+          msg: "Ошибка регистрации: $errorDetail",
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.TOP,
           backgroundColor: Colors.red,
@@ -87,17 +74,39 @@ class LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(title: Text('Авторизация')),
+      appBar: AppBar(title: Text('Регистрация')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Image.asset(
-                'images/smgh_logo.png',
-                width: 200,
-                height: 200,
-              ),
+              'images/smgh_logo.png',
+              width: 200,
+              height: 200,
+            ),
             SizedBox(height: 24),
+            TextField(
+              controller: _firstNameController,
+              decoration: InputDecoration(
+                labelText: 'Имя',
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black, width: 2.0),
+                ),
+              )
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _lastNameController,
+              decoration: InputDecoration(
+                labelText: 'Фамилия',
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black, width: 2.0),
+                ),
+              )
+            ),
+            SizedBox(height: 20),
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -124,7 +133,7 @@ class LoginScreenState extends State<LoginScreen> {
             _isLoading
                 ? CircularProgressIndicator()
                 : ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _register,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: Colors.green,
@@ -134,17 +143,8 @@ class LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  child: Text('Войти')),
-            SizedBox(height: 10),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RegisterScreen())),
-              child: Text('Нет аккаунта? Зарегистрироваться', style: TextStyle(color: Colors.purple)),
-
-            ),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen())),
-              child: Text('Забыли пароль?', style: TextStyle(color: Colors.purple)),
-            ),
+                  child: Text('Зарегистрироваться')
+                ),
           ],
         ),
       ),
