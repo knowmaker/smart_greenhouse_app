@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'sensor_screen.dart';
 import 'control_screen.dart';
 import 'settings_screen.dart';
@@ -15,6 +16,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -87,7 +89,7 @@ class MainScreenState extends State<MainScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/greenhouses/my'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

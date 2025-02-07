@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'user_gh_module.dart';
 import 'login_screen.dart';
 import 'dart:convert';
@@ -37,7 +38,7 @@ class UserScreenState extends State<UserScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/me');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/me');
 
     try {
       final response = await http.get(
@@ -80,7 +81,7 @@ class UserScreenState extends State<UserScreen> {
   Future<void> _updateUserField(String field, String value) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/update');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/update');
 
     try {
       final response = await http.patch(

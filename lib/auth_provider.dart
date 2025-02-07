@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -32,7 +33,7 @@ class GlobalAuth {
 
     try {
       await http.put(
-        Uri.parse('http://alexandergh2023.tplinkdns.com/users/fcm'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/users/fcm'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

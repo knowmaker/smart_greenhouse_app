@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'login_screen.dart';
@@ -62,7 +63,7 @@ class SettingsScreenState extends State<SettingsScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/settings/$selectedGreenhouseGuid');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/settings/$selectedGreenhouseGuid');
 
     try {
       final response = await http.get(
@@ -109,7 +110,7 @@ class SettingsScreenState extends State<SettingsScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/settings/$selectedGreenhouseGuid');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/settings/$selectedGreenhouseGuid');
 
     // Формируем список настроек для отправки
     final newSettings = settingData.entries.map((entry) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'login_screen.dart';
@@ -75,7 +76,7 @@ class SensorScreenState extends State<SensorScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/sensor-readings/$selectedGreenhouseGuid');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/sensor-readings/$selectedGreenhouseGuid');
 
     try {
       final response = await http.get(

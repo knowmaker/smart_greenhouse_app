@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'auth_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -26,7 +27,7 @@ class LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/login');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/login');
 
     try {
       final response = await http.post(

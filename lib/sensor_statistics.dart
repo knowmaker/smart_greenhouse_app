@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -20,14 +21,13 @@ class SensorStatisticsScreen extends StatefulWidget {
 
 class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   int selectedMonth = DateTime.now().month;
-  int? selectedDay;
+  int? selectedDay = DateTime.now().day;
   int? startHour;
   int? endHour;
   Map<String, double> sensorData = {};
 
   Future<void> fetchSensorStatistics() async {
-    final String baseUrl =
-        'http://alexandergh2023.tplinkdns.com/sensor-readings/${widget.greenhouseGuid}/${widget.sensorKey}';
+    final url = '${dotenv.env['API_BASE_URL']}/sensor-readings/${widget.greenhouseGuid}/${widget.sensorKey}';
 
     Map<String, String> queryParams = {'month': selectedMonth.toString()};
     if (selectedDay != null) queryParams['day'] = selectedDay.toString();
@@ -36,15 +36,18 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       queryParams['end_hour'] = endHour.toString();
     }
 
-    final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
-    final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
+    final uri = Uri.parse(url).replace(queryParameters: queryParams);
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
         sensorData = Map<String, double>.from(
             data['data'].map((k, v) => MapEntry(k, (v as num).toDouble())));
-      });
+        });
+      }
+    } catch (e) {
+      // Обработать ошибку запроса
     }
   }
 
@@ -58,6 +61,22 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
     return spots;
   }
 
+  Widget buildDropdown<T>(
+      {required String hint,
+      required T? value,
+      required List<T> items,
+      required ValueChanged<T?> onChanged}) {
+    return DropdownButton<T>(
+      value: value,
+      hint: Text(hint),
+      onChanged: onChanged,
+      items: items
+          .map((item) =>
+              DropdownMenuItem(value: item, child: Text(item.toString())))
+          .toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,66 +88,55 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
           children: [
             Row(
               children: [
-                DropdownButton<int>(
+                buildDropdown<int>(
+                  hint: 'Месяц',
                   value: selectedMonth,
+                  items: List.generate(12, (index) => index + 1),
                   onChanged: (value) {
                     setState(() {
                       selectedMonth = value!;
                       fetchSensorStatistics();
                     });
                   },
-                  items: List.generate(
-                      12,
-                      (index) => DropdownMenuItem(
-                          value: index + 1, child: Text('${index + 1} месяц'))),
                 ),
                 const SizedBox(width: 10),
-                DropdownButton<int?>(
+                buildDropdown<int?>(
+                  hint: 'День',
                   value: selectedDay,
-                  hint: Text('День'),
+                  items: List.generate(31, (index) => index + 1),
                   onChanged: (value) {
                     setState(() {
                       selectedDay = value;
                       fetchSensorStatistics();
                     });
                   },
-                  items: List.generate(
-                      31,
-                      (index) => DropdownMenuItem(
-                          value: index + 1, child: Text('${index + 1}'))),
                 ),
               ],
             ),
             Row(
               children: [
-                DropdownButton<int?>(
+                buildDropdown<int?>(
+                  hint: 'Начало',
                   value: startHour,
-                  hint: Text('Начало'),
+                  items: List.generate(24, (index) => index),
                   onChanged: (value) {
                     setState(() {
                       startHour = value;
                       fetchSensorStatistics();
                     });
                   },
-                  items: List.generate(
-                      24,
-                      (index) => DropdownMenuItem(
-                          value: index, child: Text('$index:00'))),
                 ),
                 const SizedBox(width: 10),
-                DropdownButton<int?>(
+                buildDropdown<int?>(
+                  hint: 'Конец',
                   value: endHour,
-                  hint: Text('Конец'),
+                  items: List.generate(24, (index) => index),
                   onChanged: (value) {
                     setState(() {
                       endHour = value;
                       fetchSensorStatistics();
                     });
                   },
-                  items: List.generate(
-                      24,
-                      (index) => DropdownMenuItem(
-                          value: index, child: Text('$index:00'))),
                 ),
               ],
             ),
@@ -141,23 +149,30 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                       spots: getChartData(),
                       isCurved: true,
                       barWidth: 3,
-                      // colors: [Colors.green],
+                      color: Colors.green,
                       belowBarData: BarAreaData(show: false),
                     ),
                   ],
-                  // titlesData: FlTitlesData(
-                  //   leftTitles: SideTitles(showTitles: true),
-                  //   bottomTitles: SideTitles(
-                  //     showTitles: true,
-                  //     getTitles: (value) {
-                  //       int index = value.toInt();
-                  //       if (index >= 0 && index < sensorData.keys.length) {
-                  //         return sensorData.keys.elementAt(index);
-                  //       }
-                  //       return '';
-                  //     },
-                  //   ),
-                  // ),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          int index = value.toInt();
+                          if (index >= 0 && index < sensorData.keys.length) {
+                            return Text(
+                              sensorData.keys.elementAt(index),
+                              style: TextStyle(fontSize: 10),
+                            );
+                          }
+                          return Container();
+                        },
+                      ),
+                    ),
+                  ),
                   borderData: FlBorderData(show: true),
                 ),
               ),

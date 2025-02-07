@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'login_screen.dart';
@@ -71,7 +72,7 @@ class ControlScreenState extends State<ControlScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/device-states/$selectedGreenhouseGuid');
 
     try {
       final response = await http.get(
@@ -124,7 +125,7 @@ class ControlScreenState extends State<ControlScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     final url = Uri.parse(
-        'http://alexandergh2023.tplinkdns.com/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
+        '${dotenv.env['API_BASE_URL']}/device-states/$selectedGreenhouseGuid/control/$controlName/${state ? '1' : '0'}');
     try {
       final response = await http.post(
         url,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   @override
@@ -18,7 +19,7 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _isLoading = true;
     });
 
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/forgot-password');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/forgot-password');
 
     try {
       final response = await http.post(
@@ -125,7 +126,7 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _resetPassword(String code, String newPassword) async {
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/reset-password');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/reset-password');
 
     try {
       final response = await http.post(

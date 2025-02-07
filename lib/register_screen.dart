@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -22,7 +23,7 @@ class RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
 
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/register');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/register');
 
     try {
       final response = await http.post(
@@ -126,7 +127,7 @@ class RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _verifyEmail(String code, {String? email}) async {
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/verify-email');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/verify-email');
 
     try {
       final response = await http.post(
@@ -214,7 +215,7 @@ class RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _requestNewCode(String email) async {
-    final url = Uri.parse('http://alexandergh2023.tplinkdns.com/users/resend-verification-code');
+    final url = Uri.parse('${dotenv.env['API_BASE_URL']}/users/resend-verification-code');
 
     try {
       final response = await http.post(

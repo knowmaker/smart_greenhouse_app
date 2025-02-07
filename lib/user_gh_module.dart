@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 
 class UserGreenhouseModule extends StatefulWidget {
@@ -29,7 +30,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/my'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/greenhouses/my'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -126,7 +127,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
 
     try {
       final response = await http.patch(
-        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/bind'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/greenhouses/bind'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -225,7 +226,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
 
     try {
       final response = await http.patch(
-        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/$guid'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/greenhouses/$guid'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -272,7 +273,7 @@ class UserGreenhouseModuleState extends State<UserGreenhouseModule> {
 
     try {
       final response = await http.patch(
-        Uri.parse('http://alexandergh2023.tplinkdns.com/greenhouses/unbind'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/greenhouses/unbind'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
