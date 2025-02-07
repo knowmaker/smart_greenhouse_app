@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
+import 'auth_provider.dart';
 
 class SensorStatisticsScreen extends StatefulWidget {
   final String sensorTitle;
@@ -24,10 +26,17 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   int? selectedDay = DateTime.now().day;
   int? startHour;
   int? endHour;
-  Map<String, double> sensorData = {};
+  List<FlSpot> chartData = [];
+  List<String> xLabels = [];
 
   Future<void> fetchSensorStatistics() async {
-    final url = '${dotenv.env['API_BASE_URL']}/sensor-readings/${widget.greenhouseGuid}/${widget.sensorKey}';
+    if (!GlobalAuth.isLoggedIn) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    final url =
+        '${dotenv.env['API_BASE_URL']}/sensor-readings/${widget.greenhouseGuid}/${widget.sensorKey}';
 
     Map<String, String> queryParams = {'month': selectedMonth.toString()};
     if (selectedDay != null) queryParams['day'] = selectedDay.toString();
@@ -38,49 +47,92 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
     final uri = Uri.parse(url).replace(queryParameters: queryParams);
     try {
-      final response = await http.get(uri);
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-        sensorData = Map<String, double>.from(
-            data['data'].map((k, v) => MapEntry(k, (v as num).toDouble())));
-        });
+        parseSensorData(data['data']);
       }
     } catch (e) {
       // Обработать ошибку запроса
     }
   }
 
-  List<FlSpot> getChartData() {
+  void parseSensorData(dynamic data) {
     List<FlSpot> spots = [];
+    List<String> labels = [];
     int index = 0;
-    sensorData.forEach((key, value) {
-      spots.add(FlSpot(index.toDouble(), value));
-      index++;
+
+    if (data is Map<String, dynamic>) {
+      data.forEach((key, value) {
+        if (value is num) {
+          // Формат { "2025-01-10": 22.6 }
+          spots.add(FlSpot(index.toDouble(), value.toDouble()));
+          labels.add(key);
+        } else if (value is Map<String, dynamic>) {
+          // Формат { "2025-01-10 10:00": { "30-59": 22 } }
+          value.forEach((time, temp) {
+            if (temp is num) {
+              spots.add(FlSpot(index.toDouble(), temp.toDouble()));
+              labels.add("$key $time");
+            } else if (temp is Map<String, num>) {
+              temp.forEach((range, t) {
+                spots.add(FlSpot(index.toDouble(), t.toDouble()));
+                labels.add("$key $time-$range");
+              });
+            }
+          });
+        }
+        index++;
+      });
+    }
+
+    setState(() {
+      chartData = spots;
+      xLabels = labels;
     });
-    return spots;
   }
 
-  Widget buildDropdown<T>(
-      {required String hint,
-      required T? value,
-      required List<T> items,
-      required ValueChanged<T?> onChanged}) {
-    return DropdownButton<T>(
-      value: value,
-      hint: Text(hint),
-      onChanged: onChanged,
-      items: items
-          .map((item) =>
-              DropdownMenuItem(value: item, child: Text(item.toString())))
-          .toList(),
+  Widget buildDropdown<T>({
+    required String hint,
+    required T? value,
+    required List<T?> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Expanded(
+      child: DropdownButtonFormField<T>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: hint,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(
+              color: Colors.blue,
+              width: 1.5,
+            ),
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+        onChanged: onChanged,
+        items: items.map((item) {
+          return DropdownMenuItem<T>(
+            value: item,
+            child: Text(item == null ? "-" : item.toString()),
+          );
+        }).toList(),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.sensorTitle)),
+      appBar: AppBar(title: Text(widget.sensorTitle.replaceAll('\n', ' '))),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -88,68 +140,78 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
           children: [
             Row(
               children: [
+                SizedBox(
+                  width: 80,
+                  child: TextFormField(
+                    initialValue: DateTime.now().year.toString(),
+                    decoration: InputDecoration(
+                      labelText: 'Год',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    enabled: false,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 buildDropdown<int>(
                   hint: 'Месяц',
                   value: selectedMonth,
-                  items: List.generate(12, (index) => index + 1),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedMonth = value!;
-                      fetchSensorStatistics();
-                    });
-                  },
+                  items: [for (var i = 1; i <= 12; i++) i],
+                  onChanged: (value) => setState(() => selectedMonth = value!),
                 ),
                 const SizedBox(width: 10),
                 buildDropdown<int?>(
                   hint: 'День',
                   value: selectedDay,
-                  items: List.generate(31, (index) => index + 1),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedDay = value;
-                      fetchSensorStatistics();
-                    });
-                  },
+                  items: [null, for (var i = 1; i <= 31; i++) i],
+                  onChanged: (value) => setState(() => selectedDay = value),
                 ),
               ],
             ),
+            const SizedBox(height: 10),
             Row(
               children: [
                 buildDropdown<int?>(
                   hint: 'Начало',
                   value: startHour,
-                  items: List.generate(24, (index) => index),
-                  onChanged: (value) {
-                    setState(() {
-                      startHour = value;
-                      fetchSensorStatistics();
-                    });
-                  },
+                  items: [null, for (var i = 0; i < 24; i++) i],
+                  onChanged: (value) => setState(() => startHour = value),
                 ),
                 const SizedBox(width: 10),
                 buildDropdown<int?>(
                   hint: 'Конец',
                   value: endHour,
-                  items: List.generate(24, (index) => index),
-                  onChanged: (value) {
-                    setState(() {
-                      endHour = value;
-                      fetchSensorStatistics();
-                    });
-                  },
+                  items: [null, for (var i = 0; i < 24; i++) i],
+                  onChanged: (value) => setState(() => endHour = value),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: fetchSensorStatistics,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  child: Icon(
+                    Icons.insert_chart,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             Expanded(
               child: LineChart(
                 LineChartData(
                   lineBarsData: [
                     LineChartBarData(
-                      spots: getChartData(),
+                      spots: chartData,
                       isCurved: true,
                       barWidth: 3,
-                      color: Colors.green,
+                      color: Colors.purple,
                       belowBarData: BarAreaData(show: false),
                     ),
                   ],
@@ -160,12 +222,14 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
+                        interval: chartData.isNotEmpty ? (chartData.length / 5).ceilToDouble() : 1,
                         getTitlesWidget: (value, meta) {
                           int index = value.toInt();
-                          if (index >= 0 && index < sensorData.keys.length) {
+                          if (index >= 0 && index < xLabels.length) {
                             return Text(
-                              sensorData.keys.elementAt(index),
+                              xLabels[index],
                               style: TextStyle(fontSize: 10),
+                              overflow: TextOverflow.ellipsis,
                             );
                           }
                           return Container();
