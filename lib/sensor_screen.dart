@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'login_screen.dart';
 import 'auth_provider.dart';
+import 'sensor_statistics.dart';
 
 class SensorScreen extends StatefulWidget {
   final Map<String, String>? greenhouse;
@@ -225,17 +226,17 @@ class SensorScreenState extends State<SensorScreen> {
               padding: EdgeInsets.all(16.0),
               children: [
                 buildSensorCard(
-                    'Температура воздуха', sensorData['airTemp'], '°C', Icons.thermostat),
+                    'Температура воздуха', 'airTemp', sensorData['airTemp'], '°C', Icons.thermostat),
                 buildSensorCard(
-                    'Влажность воздуха', sensorData['airHum'], '%', Icons.water_drop),
+                    'Влажность воздуха', 'airHum', sensorData['airHum'], '%', Icons.water_drop),
                 buildSensorCard(
-                    'Влажность почвы грядки 1', sensorData['soilMoist1'], '%', Icons.grass),
+                    'Влажность почвы грядки 1', 'soilMoist1', sensorData['soilMoist1'], '%', Icons.grass),
                 buildSensorCard(
-                    'Влажность почвы грядки 2', sensorData['soilMoist2'], '%', Icons.grass),
+                    'Влажность почвы грядки 2', 'soilMoist2', sensorData['soilMoist2'], '%', Icons.grass),
                 buildSensorCard(
-                    'Температура\nводы', sensorData['waterTemp'], '°C', Icons.opacity),
+                    'Температура\nводы', 'waterTemp', sensorData['waterTemp'], '°C', Icons.opacity),
                 buildSensorCard(
-                    'Уровень\nводы', sensorData['waterLevel'], '/ 3', Icons.water),
+                    'Уровень\nводы', 'waterLevel', sensorData['waterLevel'], '/ 3', Icons.water),
                 buildLightSensorCard('Освещенность', sensorData['light']),
               ],
             ),
@@ -245,51 +246,66 @@ class SensorScreenState extends State<SensorScreen> {
     );
   }
 
-  Widget buildSensorCard(String title, dynamic value, String unit, IconData icon) {
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.green[300]!, Colors.green[500]!],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget buildSensorCard(String title, String sensorKey, dynamic value, String unit, IconData icon) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SensorStatisticsScreen(
+              sensorTitle: title,
+              greenhouseGuid: selectedGreenhouseGuid!,
+              sensorKey: sensorKey,
+            ),
           ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Card(
+        elevation: 6,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.all(6),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 48,
-                color: Colors.white,
-              ),
-              SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.green[300]!, Colors.green[500]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(6),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 48,
                   color: Colors.white,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8),
-              Text(
-                '$value $unit',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                SizedBox(height: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-            ],
+                SizedBox(height: 8),
+                Text(
+                  '$value $unit',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
