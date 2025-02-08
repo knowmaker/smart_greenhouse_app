@@ -63,33 +63,21 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
     }
   }
 
-  void parseSensorData(dynamic data) {
+  void parseSensorData(Map<String, dynamic> data) {
     List<FlSpot> spots = [];
     List<String> labels = [];
     int index = 0;
 
-    if (data is Map<String, dynamic>) {
-      data.forEach((key, value) {
-        if (value is num) {
-          // Формат { "2025-01-10": 22.6 }
-          spots.add(FlSpot(index.toDouble(), value.toDouble()));
-          labels.add(key);
-        } else if (value is Map<String, dynamic>) {
-          // Формат { "2025-01-10 10:00": { "30-59": 22 } }
-          value.forEach((time, temp) {
-            if (temp is num) {
-              spots.add(FlSpot(index.toDouble(), temp.toDouble()));
-              labels.add("$key $time");
-            } else if (temp is Map<String, num>) {
-              temp.forEach((range, t) {
-                spots.add(FlSpot(index.toDouble(), t.toDouble()));
-                labels.add("$key $time-$range");
-              });
-            }
-          });
-        }
-        index++;
-      });
+    List<String> sortedKeys = data.keys.toList()..sort();
+
+    for (var key in sortedKeys) {
+      var value = data[key];
+
+      if (value is num) {
+        spots.add(FlSpot(index.toDouble(), value.toDouble()));
+        labels.add(key);
+      }
+      index++;
     }
 
     setState(() {
@@ -129,6 +117,44 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
     );
   }
 
+  Widget buildChart() {
+    return LineChart(
+      LineChartData(
+        lineBarsData: [
+          LineChartBarData(
+            spots: chartData,
+            isCurved: true,
+            barWidth: 3,
+            color: Colors.purple,
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: true),
+          ),
+          // bottomTitles: AxisTitles(
+          //   sideTitles: SideTitles(
+          //     showTitles: true,
+          //     interval: (xLabels.length / 5).ceilToDouble(),
+          //     getTitlesWidget: (value, meta) {
+          //       int index = value.toInt();
+          //       if (index >= 0 && index < xLabels.length) {
+          //         return Text(
+          //           xLabels[index],
+          //           style: TextStyle(fontSize: 10),
+          //         );
+          //       }
+          //       return Container();
+          //     },
+          //   ),
+          // ),
+        ),
+        borderData: FlBorderData(show: true),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,7 +180,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                     enabled: false,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(width: 10),
                 buildDropdown<int>(
                   hint: 'Месяц',
                   value: selectedMonth,
@@ -203,44 +229,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            Expanded(
-              child: LineChart(
-                LineChartData(
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: chartData,
-                      isCurved: true,
-                      barWidth: 3,
-                      color: Colors.purple,
-                      belowBarData: BarAreaData(show: false),
-                    ),
-                  ],
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: chartData.isNotEmpty ? (chartData.length / 5).ceilToDouble() : 1,
-                        getTitlesWidget: (value, meta) {
-                          int index = value.toInt();
-                          if (index >= 0 && index < xLabels.length) {
-                            return Text(
-                              xLabels[index],
-                              style: TextStyle(fontSize: 10),
-                              overflow: TextOverflow.ellipsis,
-                            );
-                          }
-                          return Container();
-                        },
-                      ),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: true),
-                ),
-              ),
-            ),
+            Expanded(child: buildChart()),
           ],
         ),
       ),
