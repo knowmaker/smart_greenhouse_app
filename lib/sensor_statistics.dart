@@ -24,13 +24,22 @@ class SensorStatisticsScreen extends StatefulWidget {
 class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   int selectedMonth = DateTime.now().month;
   int? selectedDay = DateTime.now().day;
-  int? startHour;
-  int? endHour;
+  String? selectedHourRange;
   List<BarChartGroupData> chartData = [];
   List<String> xLabels = [];
   int currentPage = 0;
   int itemsPerPage = 6;
   double maxYValue = 100;
+
+  final List<String> hourRanges = List.generate(
+    24,
+    (index) => '$index:00-${index + 1}:00',
+  );
+
+  final List<String> monthNames = [
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+  ];
 
   Future<void> fetchSensorStatistics() async {
     if (!GlobalAuth.isLoggedIn) return;
@@ -43,9 +52,10 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
     Map<String, String> queryParams = {'month': selectedMonth.toString()};
     if (selectedDay != null) queryParams['day'] = selectedDay.toString();
-    if (startHour != null && endHour != null) {
-      queryParams['start_hour'] = startHour.toString();
-      queryParams['end_hour'] = endHour.toString();
+    if (selectedHourRange != null) {
+      List<String> hours = selectedHourRange!.split('-');
+      queryParams['start_hour'] = hours[0].split(':')[0];
+      queryParams['end_hour'] = hours[1].split(':')[0];
     }
 
     final uri = Uri.parse(url).replace(queryParameters: queryParams);
@@ -144,7 +154,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                int globalIndex= value.toInt();
+                int globalIndex = value.toInt();
                 int localIndex = globalIndex - currentPage;
                 if (localIndex >= 0 && localIndex < visibleLabels.length) {
                   return RotatedBox(
@@ -226,11 +236,12 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                buildDropdown<int>(
+                buildDropdown<String>(
                   hint: 'Месяц',
-                  value: selectedMonth,
-                  items: [for (var i = 1; i <= 12; i++) i],
-                  onChanged: (value) => setState(() => selectedMonth = value!),
+                  value: monthNames[selectedMonth - 1],
+                  items: monthNames,
+                  onChanged: (value) =>
+                      setState(() => selectedMonth = monthNames.indexOf(value!) + 1),
                 ),
                 const SizedBox(width: 10),
                 buildDropdown<int?>(
@@ -244,18 +255,11 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                buildDropdown<int?>(
-                  hint: 'Начало',
-                  value: startHour,
-                  items: [null, for (var i = 0; i < 24; i++) i],
-                  onChanged: (value) => setState(() => startHour = value),
-                ),
-                const SizedBox(width: 10),
-                buildDropdown<int?>(
-                  hint: 'Конец',
-                  value: endHour,
-                  items: [null, for (var i = 0; i < 24; i++) i],
-                  onChanged: (value) => setState(() => endHour = value),
+                buildDropdown<String?>(
+                  hint: 'Часовой интервал',
+                  value: selectedHourRange,
+                  items: [null, ...hourRanges],
+                  onChanged: (value) => setState(() => selectedHourRange = value),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
@@ -277,8 +281,14 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(icon: Icon(Icons.arrow_back), onPressed: prevPage),
-                IconButton(icon: Icon(Icons.arrow_forward), onPressed: nextPage),
+                TextButton.icon(
+                    onPressed: prevPage,
+                    icon: Icon(Icons.arrow_back, color: Colors.blue),
+                    label: Text("Назад", style: TextStyle(color: Colors.blue))),
+                TextButton.icon(
+                    onPressed: nextPage,
+                    icon: Icon(Icons.arrow_forward, color: Colors.blue,),
+                    label: Text("Вперед", style: TextStyle(color: Colors.blue))),
               ],
             ),
           ],
