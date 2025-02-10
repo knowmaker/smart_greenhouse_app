@@ -144,16 +144,24 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index >= 0 && index < visibleLabels.length) {
-                  return Text(
-                    visibleLabels[index],
-                    style: TextStyle(fontSize: 10),
+                int globalIndex= value.toInt();
+                int localIndex = globalIndex - currentPage;
+                if (localIndex >= 0 && localIndex < visibleLabels.length) {
+                  return RotatedBox(
+                      quarterTurns: -1,
+                      child: Text(
+                        visibleLabels[localIndex],
+                        style: TextStyle(fontSize: 10),
+                        overflow: TextOverflow.visible)
                   );
                 }
                 return Container();
               },
+              reservedSize: 60,
             ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
           ),
         ),
         borderData: FlBorderData(show: false),
@@ -264,7 +272,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             Expanded(child: buildChart()),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
