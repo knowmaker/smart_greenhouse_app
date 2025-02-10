@@ -26,8 +26,10 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   int? selectedDay = DateTime.now().day;
   int? startHour;
   int? endHour;
-  List<FlSpot> chartData = [];
+  List<BarChartGroupData> chartData = [];
   List<String> xLabels = [];
+  int currentPage = 0;
+  int itemsPerPage = 6;
 
   Future<void> fetchSensorStatistics() async {
     if (!GlobalAuth.isLoggedIn) return;
@@ -64,7 +66,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   }
 
   void parseSensorData(Map<String, dynamic> data) {
-    List<FlSpot> spots = [];
+    List<BarChartGroupData> bars = [];
     List<String> labels = [];
     int index = 0;
 
@@ -74,16 +76,79 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       var value = data[key];
 
       if (value is num) {
-        spots.add(FlSpot(index.toDouble(), value.toDouble()));
+        bars.add(
+          BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: value.toDouble(),
+                width: 30,
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ],
+            barsSpace: 0,
+          ),
+        );
         labels.add(key);
       }
       index++;
     }
 
     setState(() {
-      chartData = spots;
+      chartData = bars;
       xLabels = labels;
+      currentPage = 0;
     });
+  }
+
+  void nextPage() {
+    setState(() {
+      if ((currentPage + 1) * itemsPerPage < chartData.length) {
+        currentPage++;
+      }
+    });
+  }
+
+  void prevPage() {
+    setState(() {
+      if (currentPage > 0) {
+        currentPage--;
+      }
+    });
+  }
+
+  Widget buildChart() {
+    List<BarChartGroupData> visibleData =
+        chartData.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+    List<String> visibleLabels =
+        xLabels.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+
+    return BarChart(
+      BarChartData(
+        barGroups: visibleData,
+        maxY: 100,
+        minY: 0,
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                int index = value.toInt();
+                if (index >= 0 && index < visibleLabels.length) {
+                  return Text(
+                    visibleLabels[index],
+                    style: TextStyle(fontSize: 10),
+                  );
+                }
+                return Container();
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+      ),
+    );
   }
 
   Widget buildDropdown<T>({
@@ -113,44 +178,6 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             child: Text(item == null ? "-" : item.toString()),
           );
         }).toList(),
-      ),
-    );
-  }
-
-  Widget buildChart() {
-    return LineChart(
-      LineChartData(
-        lineBarsData: [
-          LineChartBarData(
-            spots: chartData,
-            isCurved: true,
-            barWidth: 3,
-            color: Colors.purple,
-            belowBarData: BarAreaData(show: false),
-          ),
-        ],
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: true),
-          ),
-          // bottomTitles: AxisTitles(
-          //   sideTitles: SideTitles(
-          //     showTitles: true,
-          //     interval: (xLabels.length / 5).ceilToDouble(),
-          //     getTitlesWidget: (value, meta) {
-          //       int index = value.toInt();
-          //       if (index >= 0 && index < xLabels.length) {
-          //         return Text(
-          //           xLabels[index],
-          //           style: TextStyle(fontSize: 10),
-          //         );
-          //       }
-          //       return Container();
-          //     },
-          //   ),
-          // ),
-        ),
-        borderData: FlBorderData(show: true),
       ),
     );
   }
@@ -230,6 +257,19 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             ),
             const SizedBox(height: 10),
             Expanded(child: buildChart()),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back),
+                  onPressed: prevPage,
+                ),
+                IconButton(
+                  icon: Icon(Icons.arrow_forward),
+                  onPressed: nextPage,
+                ),
+              ],
+            ),
           ],
         ),
       ),
