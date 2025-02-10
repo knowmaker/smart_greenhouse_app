@@ -30,6 +30,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   List<String> xLabels = [];
   int currentPage = 0;
   int itemsPerPage = 6;
+  double maxYValue = 100;
 
   Future<void> fetchSensorStatistics() async {
     if (!GlobalAuth.isLoggedIn) return;
@@ -69,6 +70,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
     List<BarChartGroupData> bars = [];
     List<String> labels = [];
     int index = 0;
+    double maxValue = 0;
 
     List<String> sortedKeys = data.keys.toList()..sort();
 
@@ -76,12 +78,15 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       var value = data[key];
 
       if (value is num) {
+        double numericValue = value.toDouble();
+        maxValue = numericValue > maxValue ? numericValue : maxValue;
+
         bars.add(
           BarChartGroupData(
             x: index,
             barRods: [
               BarChartRodData(
-                toY: value.toDouble(),
+                toY: numericValue,
                 width: 30,
                 color: Colors.purple,
                 borderRadius: BorderRadius.circular(4),
@@ -95,16 +100,21 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       index++;
     }
 
+    // Округляем максимум вверх до ближайшего кратного 10 + 10, но не более 100
+    double adjustedMaxY = ((maxValue / 10).ceil() * 10) + 10;
+    if (adjustedMaxY > 100) adjustedMaxY = 100;
+
     setState(() {
       chartData = bars;
       xLabels = labels;
+      maxYValue = adjustedMaxY;
       currentPage = 0;
     });
   }
 
   void nextPage() {
     setState(() {
-      if ((currentPage + 1) * itemsPerPage < chartData.length) {
+      if (currentPage + itemsPerPage < chartData.length) {
         currentPage++;
       }
     });
@@ -120,14 +130,14 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
   Widget buildChart() {
     List<BarChartGroupData> visibleData =
-        chartData.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+        chartData.skip(currentPage).take(itemsPerPage).toList();
     List<String> visibleLabels =
-        xLabels.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+        xLabels.skip(currentPage).take(itemsPerPage).toList();
 
     return BarChart(
       BarChartData(
         barGroups: visibleData,
-        maxY: 100,
+        maxY: maxYValue,
         minY: 0,
         titlesData: FlTitlesData(
           bottomTitles: AxisTitles(
@@ -245,7 +255,6 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: EdgeInsets.symmetric(vertical: 14),
-                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   child: Icon(
                     Icons.insert_chart,
@@ -260,14 +269,8 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  onPressed: prevPage,
-                ),
-                IconButton(
-                  icon: Icon(Icons.arrow_forward),
-                  onPressed: nextPage,
-                ),
+                IconButton(icon: Icon(Icons.arrow_back), onPressed: prevPage),
+                IconButton(icon: Icon(Icons.arrow_forward), onPressed: nextPage),
               ],
             ),
           ],
