@@ -25,7 +25,9 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   int selectedMonth = DateTime.now().month;
   int? selectedDay = DateTime.now().day;
   String? selectedHourRange;
-  List<BarChartGroupData> chartData = [];
+  bool isLineChart = false;
+  List<BarChartGroupData> barChartData = [];
+  List<FlSpot> lineChartData = [];
   List<String> xLabels = [];
   int currentPage = 0;
   int itemsPerPage = 6;
@@ -78,6 +80,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
   void parseSensorData(Map<String, dynamic> data) {
     List<BarChartGroupData> bars = [];
+    List<FlSpot> spots = [];
     List<String> labels = [];
     int index = 0;
     double maxValue = 0;
@@ -91,31 +94,36 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
         double numericValue = value.toDouble();
         maxValue = numericValue > maxValue ? numericValue : maxValue;
 
-        bars.add(
-          BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: numericValue,
-                width: 30,
-                color: Colors.purple,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ],
-            barsSpace: 0,
-          ),
-        );
+        if (selectedHourRange != null) {
+          spots.add(FlSpot(index.toDouble(), numericValue));
+        } else {
+          bars.add(
+            BarChartGroupData(
+              x: index,
+              barRods: [
+                BarChartRodData(
+                  toY: numericValue,
+                  width: 30,
+                  color: Colors.purple,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ],
+              barsSpace: 0,
+            ),
+          );
+        }
         labels.add(key);
       }
       index++;
     }
 
-    // Округляем максимум вверх до ближайшего кратного 10 + 10, но не более 100
     double adjustedMaxY = ((maxValue / 10).ceil() * 10) + 10;
     if (adjustedMaxY > 100) adjustedMaxY = 100;
 
     setState(() {
-      chartData = bars;
+      isLineChart = selectedHourRange != null;
+      barChartData = bars;
+      lineChartData = spots;
       xLabels = labels;
       maxYValue = adjustedMaxY;
       currentPage = 0;
@@ -124,8 +132,8 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
   void nextPage() {
     setState(() {
-      if (currentPage + itemsPerPage < chartData.length) {
-        currentPage++;
+    if (currentPage + itemsPerPage < barChartData.length) {
+      currentPage++;
       }
     });
   }
@@ -133,50 +141,78 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   void prevPage() {
     setState(() {
       if (currentPage > 0) {
-        currentPage--;
+      currentPage--;
       }
     });
   }
 
   Widget buildChart() {
-    List<BarChartGroupData> visibleData =
-        chartData.skip(currentPage).take(itemsPerPage).toList();
-    List<String> visibleLabels =
-        xLabels.skip(currentPage).take(itemsPerPage).toList();
-
-    return BarChart(
-      BarChartData(
-        barGroups: visibleData,
-        maxY: maxYValue,
-        minY: 0,
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                int globalIndex = value.toInt();
-                int localIndex = globalIndex - currentPage;
-                if (localIndex >= 0 && localIndex < visibleLabels.length) {
-                  return RotatedBox(
+    if (isLineChart) {
+      return LineChart(
+        LineChartData(
+          lineBarsData: [
+            LineChartBarData(
+              spots: lineChartData,
+              isCurved: false,
+              color: Colors.blue,
+              barWidth: 2,
+              dotData: FlDotData(show: false),
+            ),
+          ],
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  int index = value.toInt();
+                  if (index == 0 || index == lineChartData.length - 1) {
+                    return Text(xLabels[index], style: TextStyle(fontSize: 10));
+                  }
+                  return Container();
+                },
+                reservedSize: 30,
+              ),
+            ),
+          ),
+          minY: 0,
+          maxY: maxYValue,
+        ),
+      );
+    } else {
+      List<BarChartGroupData> visibleData =
+          barChartData.skip(currentPage).take(itemsPerPage).toList();
+      return BarChart(
+        BarChartData(
+          barGroups: visibleData,
+          maxY: maxYValue,
+          minY: 0,
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  int index = value.toInt() - currentPage;
+                  if (index >= 0 && index < xLabels.length) {
+                    return RotatedBox(
                       quarterTurns: -1,
                       child: Text(
-                        visibleLabels[localIndex],
+                        xLabels[value.toInt()],
                         style: TextStyle(fontSize: 10),
                         overflow: TextOverflow.visible)
                   );
-                }
-                return Container();
-              },
-              reservedSize: 60,
+                  }
+                  return Container();
+                },
+                reservedSize: 60,
+              ),
             ),
-          ),
           topTitles: AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
         ),
-        borderData: FlBorderData(show: false),
-      ),
-    );
+        ),
+      );
+    }
   }
 
   Widget buildDropdown<T>({
@@ -262,8 +298,8 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                   onChanged: (value) => setState(() => selectedHourRange = value),
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: fetchSensorStatistics,
+            ElevatedButton(
+              onPressed: fetchSensorStatistics,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: EdgeInsets.symmetric(vertical: 14),
@@ -273,24 +309,25 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                     color: Colors.white,
                     size: 24,
                   ),
-                ),
+            ),
               ],
             ),
             const SizedBox(height: 20),
             Expanded(child: buildChart()),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
+            if (!isLineChart)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
                     onPressed: prevPage,
                     icon: Icon(Icons.arrow_back, color: Colors.blue),
                     label: Text("Назад", style: TextStyle(color: Colors.blue))),
-                TextButton.icon(
+                  TextButton.icon(
                     onPressed: nextPage,
                     icon: Icon(Icons.arrow_forward, color: Colors.blue,),
                     label: Text("Вперед", style: TextStyle(color: Colors.blue))),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),
