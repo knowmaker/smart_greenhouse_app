@@ -30,13 +30,12 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
   List<FlSpot> lineChartData = [];
   List<String> xLabels = [];
   int currentPage = 0;
-  int itemsPerPage = 6;
   double maxYValue = 100;
+  double minYValue = 0;
+  bool isDataLoaded = false;
+  bool isDataEmpty = false;
 
-  final List<String> hourRanges = List.generate(
-    24,
-    (index) => '$index:00-${index + 1}:00',
-  );
+  final List<String> hourRanges = List.generate(24, (index) => '$index:00-${index + 1}:00');
 
   final List<String> monthNames = [
     "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -71,7 +70,18 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        parseSensorData(data['data']);
+        if (data['data'].isEmpty) {
+          setState(() {
+            isDataLoaded = true;
+            isDataEmpty = true;
+          });
+        } else {
+          parseSensorData(data['data']);
+          setState(() {
+            isDataLoaded = true;
+            isDataEmpty = false;
+          });
+        }
       }
     } catch (e) {
       // Обработать ошибку запроса
@@ -83,7 +93,8 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
     List<FlSpot> spots = [];
     List<String> labels = [];
     int index = 0;
-    double maxValue = 0;
+    double maxValue = double.negativeInfinity;
+    double minValue = double.infinity;
 
     List<String> sortedKeys = data.keys.toList()..sort();
 
@@ -93,6 +104,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       if (value is num) {
         double numericValue = value.toDouble();
         maxValue = numericValue > maxValue ? numericValue : maxValue;
+        minValue = numericValue < minValue ? numericValue : minValue;
 
         if (selectedHourRange != null) {
           spots.add(FlSpot(index.toDouble(), numericValue));
@@ -119,6 +131,8 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
     double adjustedMaxY = ((maxValue / 10).ceil() * 10) + 10;
     if (adjustedMaxY > 100) adjustedMaxY = 100;
+    double adjustedMinY = ((minValue / 10).floor() * 10) - 10;
+    if (adjustedMinY < 0) adjustedMinY = 0;
 
     setState(() {
       isLineChart = selectedHourRange != null;
@@ -126,35 +140,66 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
       lineChartData = spots;
       xLabels = labels;
       maxYValue = adjustedMaxY;
+      minYValue = adjustedMinY;
       currentPage = 0;
     });
   }
 
-  void nextPage() {
-    setState(() {
-    if (currentPage + itemsPerPage < barChartData.length) {
-      currentPage++;
-      }
-    });
-  }
+void nextPage() {
+  setState(() {
+    int step = isLineChart ? 240 : 1;
+    if (currentPage + step < (isLineChart ? lineChartData.length : barChartData.length)) {
+      currentPage += step;
+    }
+  });
+}
 
-  void prevPage() {
-    setState(() {
-      if (currentPage > 0) {
-      currentPage--;
-      }
-    });
-  }
+void prevPage() {
+  setState(() {
+    int step = isLineChart ? 240 : 1;
+    if (currentPage - step >= 0) {
+      currentPage -= step;
+    }
+  });
+}
+
 
   Widget buildChart() {
+    if (!isDataLoaded) {
+      return Center(
+        child: Text(
+          "Заполните поля и нажмите кнопку",
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+
+    if (isDataEmpty) {
+      return Center(
+        child: Text(
+          "Данных нет",
+          style: TextStyle(color: Colors.purple, fontSize: 16),
+        ),
+      );
+    }
+
     if (isLineChart) {
+      List<FlSpot> visibleData =
+          lineChartData.skip(currentPage).take(240).toList();
+      List<String> visibleXLabels =
+        xLabels.skip(currentPage).take(240).toList();
       return LineChart(
         LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+          ),
           lineBarsData: [
             LineChartBarData(
-              spots: lineChartData,
-              isCurved: false,
-              color: Colors.blue,
+              spots: visibleData,
+              isCurved: true,
+              curveSmoothness: 0.1,
+              color: Colors.purple,
               barWidth: 2,
               dotData: FlDotData(show: false),
             ),
@@ -164,28 +209,41 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  int index = value.toInt();
-                  if (index == 0 || index == lineChartData.length - 1) {
-                    return Text(xLabels[index], style: TextStyle(fontSize: 10));
+                  int index = value.toInt() - currentPage;
+                  if (index % 240 == 0 || (index + 1) % 240 == 0 || index == visibleData.length - 1) {
+                    return RotatedBox(
+                      quarterTurns: -1,
+                      child: Text(
+                        visibleXLabels[index],
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    );
                   }
                   return Container();
                 },
-                reservedSize: 30,
+                reservedSize: 60,
               ),
             ),
+            topTitles: AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            )
           ),
-          minY: 0,
+          minY: minYValue,
           maxY: maxYValue,
         ),
       );
     } else {
       List<BarChartGroupData> visibleData =
-          barChartData.skip(currentPage).take(itemsPerPage).toList();
+          barChartData.skip(currentPage).take(6).toList();
       return BarChart(
         BarChartData(
           barGroups: visibleData,
           maxY: maxYValue,
           minY: 0,
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+          ),
           titlesData: FlTitlesData(
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
@@ -198,18 +256,18 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                       child: Text(
                         xLabels[value.toInt()],
                         style: TextStyle(fontSize: 10),
-                        overflow: TextOverflow.visible)
-                  );
+                      ),
+                    );
                   }
                   return Container();
                 },
                 reservedSize: 60,
               ),
             ),
-          topTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+            topTitles: AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
-        ),
         ),
       );
     }
@@ -239,7 +297,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
         items: items.map((item) {
           return DropdownMenuItem<T>(
             value: item,
-            child: Text(item == null ? "-" : item.toString()),
+            child: Text(item == null ? "Нет" : item.toString()),
           );
         }).toList(),
       ),
@@ -281,7 +339,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
                 ),
                 const SizedBox(width: 10),
                 buildDropdown<int?>(
-                  hint: 'День',
+                  hint: 'Число',
                   value: selectedDay,
                   items: [null, for (var i = 1; i <= 31; i++) i],
                   onChanged: (value) => setState(() => selectedDay = value),
@@ -314,7 +372,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             ),
             const SizedBox(height: 20),
             Expanded(child: buildChart()),
-            if (!isLineChart)
+            if (isDataLoaded && !isDataEmpty)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
