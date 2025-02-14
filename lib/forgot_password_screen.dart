@@ -13,6 +13,15 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   String? _hashCode;
   bool _isLoading = false;
+  bool _isEmailValid = false;
+  bool _emailTouched = false;
+
+  void _validateEmail(String value) {
+    setState(() {
+      _emailTouched = true;
+      _isEmailValid = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value);
+    });
+  }
 
   Future<void> _sendResetRequest() async {
     setState(() {
@@ -195,13 +204,17 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.black, width: 2.0),
                 ),
+                errorText: _emailTouched && !_isEmailValid ? 'Некорректный email' : null,
               ),
+              onChanged: _validateEmail,
             ),
             SizedBox(height: 24),
             _isLoading
                 ? CircularProgressIndicator()
                 : ElevatedButton(
-                  onPressed: _sendResetRequest,
+                  onPressed: _isEmailValid
+                        ? _sendResetRequest
+                        : null,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: Colors.green,

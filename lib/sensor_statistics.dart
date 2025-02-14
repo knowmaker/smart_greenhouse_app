@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'auth_provider.dart';
@@ -82,9 +83,24 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
             isDataEmpty = false;
           });
         }
+      } else {
+        final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
+        Fluttertoast.showToast(
+          msg: "Ошибка: $errorDetail",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
     } catch (e) {
-      // Обработать ошибку запроса
+      Fluttertoast.showToast(
+        msg: "Ошибка сервера",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.yellow,
+        textColor: Colors.black,
+      );
     }
   }
 
@@ -201,9 +217,25 @@ void prevPage() {
               curveSmoothness: 0.1,
               color: Colors.purple,
               barWidth: 2,
-              dotData: FlDotData(show: false),
+              dotData: FlDotData(show: true),
+              showingIndicators: List.generate(visibleData.length, (index) => index),
             ),
           ],
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                return touchedSpots.map((spot) {
+                  int index = spot.x.toInt() - currentPage;
+                  return LineTooltipItem(
+                    'Время: ${visibleXLabels[index]}\nПоказание: ${spot.y.toStringAsFixed(2)}',
+                    TextStyle(color: Colors.white),
+                  );
+                }).toList();
+              },
+            ),
+            touchCallback: (FlTouchEvent event, LineTouchResponse? response) {},
+            handleBuiltInTouches: true,
+          ),
           titlesData: FlTitlesData(
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(

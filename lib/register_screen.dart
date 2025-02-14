@@ -17,6 +17,25 @@ class RegisterScreenState extends State<RegisterScreen> {
 
   String? _hashCode;
   bool _isLoading = false;
+  bool _isAgreed = false;
+  bool _isEmailValid = false;
+  bool _isPasswordValid = false;
+  bool _emailTouched = false;
+  bool _passwordTouched = false;
+
+  void _validateEmail(String value) {
+    setState(() {
+      _emailTouched = true;
+      _isEmailValid = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value);
+    });
+  }
+
+  void _validatePassword(String value) {
+    setState(() {
+      _passwordTouched = true;
+      _isPasswordValid = value.length >= 6;
+    });
+  }
 
   Future<void> _register() async {
     setState(() {
@@ -76,7 +95,7 @@ class RegisterScreenState extends State<RegisterScreen> {
         textColor: Colors.black,
       );
     } finally {
-        if (mounted) {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -174,41 +193,58 @@ class RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _resendVerificationCode() async {
     final TextEditingController emailController = TextEditingController();
+    bool isEmailValid2 = false;
+    bool emailTouched2 = false;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text("Запрос нового кода"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(height: 10),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey, width: 2.0),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            void validateEmail2(String value) {
+              setState(() {
+                emailTouched2 = true;
+                isEmailValid2 = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value);
+              });
+            }
+
+            return AlertDialog(
+              title: Text("Запрос нового кода"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(height: 10),
+                  TextField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: "Email",
+                      border: OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                      ),
+                      errorText: emailTouched2 && !isEmailValid2 ? 'Некорректный email' : null,
+                    ),
+                    onChanged: validateEmail2,
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Отмена", style: TextStyle(color: Colors.black)),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _requestNewCode(emailController.text);
-              },
-              child: Text("Запросить код"),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("Отмена", style: TextStyle(color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: isEmailValid2
+                      ? () async {
+                          Navigator.pop(context);
+                          await _requestNewCode(emailController.text);
+                        }
+                      : null,
+                  child: Text("Запросить код"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -274,28 +310,6 @@ class RegisterScreenState extends State<RegisterScreen> {
             ),
             SizedBox(height: 24),
             TextField(
-              controller: _firstNameController,
-              decoration: InputDecoration(
-                labelText: 'Имя',
-                border: OutlineInputBorder(),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black, width: 2.0),
-                ),
-              )
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _lastNameController,
-              decoration: InputDecoration(
-                labelText: 'Фамилия',
-                border: OutlineInputBorder(),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black, width: 2.0),
-                ),
-              )
-            ),
-            SizedBox(height: 20),
-            TextField(
               controller: _emailController,
               decoration: InputDecoration(
                 labelText: 'Email',
@@ -303,7 +317,9 @@ class RegisterScreenState extends State<RegisterScreen> {
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.black, width: 2.0),
                 ),
+                errorText: _emailTouched && !_isEmailValid ? 'Некорректный email' : null,
               ),
+              onChanged: _validateEmail,
             ),
             SizedBox(height: 20),
             TextField(
@@ -314,25 +330,70 @@ class RegisterScreenState extends State<RegisterScreen> {
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.black, width: 2.0),
                 ),
+                errorText: _passwordTouched && !_isPasswordValid ? 'Пароль должен быть не менее 6 символов' : null,
               ),
               obscureText: true,
+              onChanged: _validatePassword,
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _firstNameController,
+              decoration: InputDecoration(
+                labelText: 'Имя',
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black, width: 2.0),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _lastNameController,
+              decoration: InputDecoration(
+                labelText: 'Фамилия',
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black, width: 2.0),
+                ),
+              ),
+            ),
+            SizedBox(height: 14),
+            Row(
+              children: [
+                Checkbox(
+                  value: _isAgreed,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _isAgreed = value ?? false;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: Text(
+                    "Я согласен на обработку персональных данных",
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 24),
             _isLoading
                 ? CircularProgressIndicator()
                 : ElevatedButton(
-                  onPressed: _register,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.green,
-                    padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
-                    textStyle: TextStyle(fontSize: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
+                    onPressed: (_isEmailValid && _isPasswordValid && _isAgreed)
+                        ? _register
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
+                      textStyle: TextStyle(fontSize: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                     ),
+                    child: Text('Регистрация'),
                   ),
-                  child: Text('Зарегистрироваться')
-                ),
             SizedBox(height: 10),
             TextButton(
               onPressed: () => _resendVerificationCode(),
