@@ -210,7 +210,7 @@ class SensorScreenState extends State<SensorScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Последнее обновление: $lastUpdate',
+                'Данные актуальны на $lastUpdate',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
@@ -227,13 +227,13 @@ class SensorScreenState extends State<SensorScreen> {
               padding: EdgeInsets.all(16.0),
               children: [
                 buildSensorCard(
-                    'Температура воздуха', 'airTemp', sensorData['airTemp'], '°C', Icons.thermostat),
+                    'Температура\nвоздуха', 'airTemp', sensorData['airTemp'], '°C', Icons.thermostat),
                 buildSensorCard(
-                    'Влажность воздуха', 'airHum', sensorData['airHum'], '%', Icons.water_drop),
+                    'Влажность\nвоздуха', 'airHum', sensorData['airHum'], '%', Icons.water_drop),
                 buildSensorCard(
-                    'Влажность почвы грядки 1', 'soilMoist1', sensorData['soilMoist1'], '%', Icons.grass),
+                    'Влажность почвы\nгрядки 1', 'soilMoist1', sensorData['soilMoist1'], '%', Icons.grass),
                 buildSensorCard(
-                    'Влажность почвы грядки 2', 'soilMoist2', sensorData['soilMoist2'], '%', Icons.grass),
+                    'Влажность почвы\nгрядки 2', 'soilMoist2', sensorData['soilMoist2'], '%', Icons.grass),
                 buildSensorCard(
                     'Температура\nводы', 'waterTemp', sensorData['waterTemp'], '°C', Icons.opacity),
                 buildSensorCard(
@@ -277,36 +277,40 @@ class SensorScreenState extends State<SensorScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.all(6),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 48,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 48,
+                color: Colors.white,
+              ),
+              SizedBox(height: 8),
+              SizedBox(
+                height: 50,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '$value $unit',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
-                SizedBox(height: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '$value $unit',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

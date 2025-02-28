@@ -12,6 +12,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   String? _hashCode;
+  String? _savedEmail;
   bool _isLoading = false;
   bool _isEmailValid = false;
   bool _emailTouched = false;
@@ -43,6 +44,7 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         final data = json.decode(response.body);
         _hashCode = data['hash_code'];
 
+        _savedEmail = _emailController.text;
         _emailController.clear();
 
         if (mounted) {
@@ -142,7 +144,7 @@ class ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'email': _emailController.text,
+          'email': _savedEmail,
           'entered_code': code,
           'received_hash': _hashCode,
           'new_password': newPassword,

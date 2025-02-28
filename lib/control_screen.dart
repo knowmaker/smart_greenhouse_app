@@ -161,6 +161,10 @@ class ControlScreenState extends State<ControlScreen> {
         textColor: Colors.black,
       );
     }
+
+    Future.delayed(Duration(seconds: 5), () {
+      fetchControlState();
+    });
   }
 
   @override
@@ -246,7 +250,7 @@ class ControlScreenState extends State<ControlScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Последнее обновление: $lastUpdate',
+                'Данные актуальны на $lastUpdate',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
@@ -296,14 +300,20 @@ class ControlScreenState extends State<ControlScreen> {
           children: [
             Icon(icon, size: 48, color: Colors.white),
             SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            SizedBox(
+              height: 35,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
             SizedBox(
