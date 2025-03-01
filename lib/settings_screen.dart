@@ -42,9 +42,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       'soilMoistThreshold2': 60,
       'waterTempThreshold1': 22,
       'waterTempThreshold2': 22,
-      'waterLevelThreshold': 2,
       'lightThreshold': 800,
-      'motionThreshold': 0,
     },
     'Помидоры': {
       'airTempThreshold': 22,
@@ -53,9 +51,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       'soilMoistThreshold2': 50,
       'waterTempThreshold1': 20,
       'waterTempThreshold2': 20,
-      'waterLevelThreshold': 2,
       'lightThreshold': 900,
-      'motionThreshold': 0,
     },
     'Перец': {
       'airTempThreshold': 26,
@@ -64,9 +60,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       'soilMoistThreshold2': 55,
       'waterTempThreshold1': 24,
       'waterTempThreshold2': 24,
-      'waterLevelThreshold': 2,
       'lightThreshold': 850,
-      'motionThreshold': 0,
     },
   };
 
@@ -126,6 +120,9 @@ class SettingsScreenState extends State<SettingsScreen> {
               settingData[label] = value;
             }
           }
+        });
+        setState(() {
+          flippedCards.clear();
         });
       } else {
         setState(() {
@@ -319,11 +316,11 @@ class SettingsScreenState extends State<SettingsScreen> {
                 buildSettingCard('Температура воды\nдля грядки 2', 'waterTempThreshold2', '°C',
                     Icons.opacity, min: 0, max: 70),
                 buildSettingCard('Уровень воды', 'waterLevelThreshold', '/ 3',
-                    Icons.water, min: 0, max: 3),
+                    Icons.water, min: 0, max: 3, canFlip: false),
                 buildSettingCard('Освещенность', 'lightThreshold', '%', Icons.light_mode,
                     min: 0, max: 1000),
                 buildSettingCard('Движение', 'motionThreshold', '', Icons.motion_photos_on,
-                    min: 0, max: 1),
+                    min: 0, max: 1, canFlip: false),
               ],
             ),
           ),
@@ -333,7 +330,7 @@ class SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget buildSettingCard(String title, String settingName, String unit, IconData icon,
-      {required int min, required int max}) {
+      {required int min, required int max, bool canFlip = true}) {
     bool isFlipped = flippedCards[settingName] ?? false;
     final setting = settingData[settingName];
     double? currentValue = (setting != '-' && setting != null)
@@ -342,9 +339,11 @@ class SettingsScreenState extends State<SettingsScreen> {
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          flippedCards[settingName] = !isFlipped;
-        });
+        if (canFlip) {
+          setState(() {
+            flippedCards[settingName] = !isFlipped;
+          });
+        }
       },
       child: AnimatedSwitcher(
         duration: Duration(milliseconds: 500),
@@ -370,11 +369,11 @@ class SettingsScreenState extends State<SettingsScreen> {
                                 });
                               })
                             : buildMainSettingCard(title, settingName,
-                                currentValue, unit, icon, min, max),
+                                currentValue, unit, icon, min, max, showHelpIcon: canFlip),
                       )
                     : isFlipped
                         ? buildMainSettingCard(title, settingName, currentValue,
-                            unit, icon, min, max)
+                            unit, icon, min, max, showHelpIcon: canFlip)
                         : buildCropSelectionCard(title, settingName, () {
                             setState(() {
                               flippedCards[settingName] = false;
@@ -390,13 +389,13 @@ class SettingsScreenState extends State<SettingsScreen> {
                   flippedCards[settingName] = false;
                 });
               })
-            : buildMainSettingCard(title, settingName, currentValue, unit, icon, min, max),
+            : buildMainSettingCard(title, settingName, currentValue, unit, icon, min, max, showHelpIcon: canFlip),
       ),
     );
   }
 
   Widget buildMainSettingCard(String title, String settingName,
-      double? currentValue, String unit, IconData icon, int min, int max) {
+      double? currentValue, String unit, IconData icon, int min, int max, {bool showHelpIcon = true}) {
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(
@@ -431,6 +430,8 @@ class SettingsScreenState extends State<SettingsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (showHelpIcon)
+                  Icon(Icons.help_outline, color: Colors.white),
               ],
             ),
             SizedBox(height: 6),
