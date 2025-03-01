@@ -4,6 +4,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math';
 import 'login_screen.dart';
 import 'auth_provider.dart';
 
@@ -31,6 +32,43 @@ class SettingsScreenState extends State<SettingsScreen> {
   };
 
   String? selectedGreenhouseGuid;
+  Map<String, bool> flippedCards = {};
+
+  final Map<String, Map<String, int>> predefinedCrops = {
+    'Огурцы': {
+      'airTempThreshold': 25,
+      'airHumThreshold': 80,
+      'soilMoistThreshold1': 60,
+      'soilMoistThreshold2': 60,
+      'waterTempThreshold1': 22,
+      'waterTempThreshold2': 22,
+      'waterLevelThreshold': 2,
+      'lightThreshold': 800,
+      'motionThreshold': 0,
+    },
+    'Помидоры': {
+      'airTempThreshold': 22,
+      'airHumThreshold': 75,
+      'soilMoistThreshold1': 50,
+      'soilMoistThreshold2': 50,
+      'waterTempThreshold1': 20,
+      'waterTempThreshold2': 20,
+      'waterLevelThreshold': 2,
+      'lightThreshold': 900,
+      'motionThreshold': 0,
+    },
+    'Перец': {
+      'airTempThreshold': 26,
+      'airHumThreshold': 70,
+      'soilMoistThreshold1': 55,
+      'soilMoistThreshold2': 55,
+      'waterTempThreshold1': 24,
+      'waterTempThreshold2': 24,
+      'waterLevelThreshold': 2,
+      'lightThreshold': 850,
+      'motionThreshold': 0,
+    },
+  };
 
   @override
   void initState() {
@@ -296,11 +334,58 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   Widget buildSettingCard(String title, String settingName, String unit, IconData icon,
       {required int min, required int max}) {
+    bool isFlipped = flippedCards[settingName] ?? false;
     final setting = settingData[settingName];
-    double currentValue = (setting != '-' && setting != null)
-        ? double.tryParse(setting.toString()) ?? min.toDouble()
-        : min.toDouble();
+    double? currentValue = (setting != '-' && setting != null)
+        ? double.tryParse(setting.toString())
+        : null;
 
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          flippedCards[settingName] = !isFlipped;
+        });
+      },
+      child: AnimatedSwitcher(
+        duration: Duration(milliseconds: 500),
+        transitionBuilder: (widget, animation) {
+          final rotateAnim = Tween(begin: 0.0, end: 1.0).animate(animation);
+          return AnimatedBuilder(
+            animation: rotateAnim,
+            builder: (context, child) {
+              final angle = rotateAnim.value * pi;
+              final isReverse = angle > pi / 2;
+
+              return Transform(
+                transform: Matrix4.rotationY(angle),
+                alignment: Alignment.center,
+                child: isReverse
+                    ? Transform(
+                        transform: Matrix4.rotationY(pi),
+                        alignment: Alignment.center,
+                        child: isFlipped
+                            ? buildCropSelectionCard(title, settingName)
+                            : buildMainSettingCard(title, settingName,
+                                currentValue, unit, icon, min, max),
+                      )
+                    : isFlipped
+                        ? buildMainSettingCard(title, settingName, currentValue,
+                            unit, icon, min, max)
+                        : buildCropSelectionCard(title, settingName),
+              );
+            },
+          );
+        },
+        child: isFlipped
+            ? buildCropSelectionCard(title, settingName)
+            : buildMainSettingCard(
+                title, settingName, currentValue, unit, icon, min, max),
+      ),
+    );
+  }
+
+  Widget buildMainSettingCard(String title, String settingName,
+      double? currentValue, String unit, IconData icon, int min, int max) {
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(
@@ -338,7 +423,7 @@ class SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             SizedBox(height: 6),
-            setting != '-'
+            currentValue != null
                 ? Column(
                     children: [
                       Text(
@@ -375,6 +460,54 @@ class SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildCropSelectionCard(String title, String settingName) {
+    return Card(
+      key: ValueKey(true),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.deepPurple,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$title для культур',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Expanded(
+              child: ListView(
+                children: predefinedCrops.keys.map((crop) {
+                  return ListTile(
+                    title: Text(
+                      crop,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    trailing: Icon(Icons.check, color: Colors.white),
+                    onTap: () {
+                      setState(() {
+                        settingData[settingName] =
+                            predefinedCrops[crop]![settingName]?.toInt() ??
+                                settingData[settingName];
+                        flippedCards[settingName] =
+                            false; // Переворачиваем обратно
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
           ],
         ),
       ),

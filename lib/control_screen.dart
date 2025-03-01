@@ -136,11 +136,11 @@ class ControlScreenState extends State<ControlScreen> {
       );
       if (response.statusCode == 200) {
         Fluttertoast.showToast(
-            msg: "Команда управления отправлена",
-            toastLength: Toast.LENGTH_LONG,
-            gravity: ToastGravity.TOP,
-            backgroundColor: Colors.green,
-            textColor: Colors.white,
+          msg: "Команда управления отправлена",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
         );
       } else {
         final errorDetail = json.decode(response.body)['detail'] ?? 'Неизвестная ошибка';
