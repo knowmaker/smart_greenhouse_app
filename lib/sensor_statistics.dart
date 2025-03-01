@@ -163,7 +163,7 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
 
 void nextPage() {
   setState(() {
-    int step = isLineChart ? 240 : 1;
+    int step = isLineChart ? 10 : 1;
     if (currentPage + step < (isLineChart ? lineChartData.length : barChartData.length)) {
       currentPage += step;
     }
@@ -172,7 +172,7 @@ void nextPage() {
 
 void prevPage() {
   setState(() {
-    int step = isLineChart ? 240 : 1;
+    int step = isLineChart ? 10 : 1;
     if (currentPage - step >= 0) {
       currentPage -= step;
     }
@@ -201,9 +201,9 @@ void prevPage() {
 
     if (isLineChart) {
       List<FlSpot> visibleData =
-          lineChartData.skip(currentPage).take(240).toList();
+          lineChartData.skip(currentPage).take(10).toList();
       List<String> visibleXLabels =
-        xLabels.skip(currentPage).take(240).toList();
+        xLabels.skip(currentPage).take(10).toList();
       return LineChart(
         LineChartData(
           gridData: FlGridData(
@@ -242,7 +242,7 @@ void prevPage() {
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
                   int index = value.toInt() - currentPage;
-                  if (index % 240 == 0 || (index + 1) % 240 == 0 || index == visibleData.length - 1) {
+                  if (index % 10 == 0 || (index + 1) % 10 == 0 || index == visibleData.length - 1) {
                     return RotatedBox(
                       quarterTurns: -1,
                       child: Text(

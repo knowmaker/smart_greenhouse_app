@@ -364,22 +364,33 @@ class SettingsScreenState extends State<SettingsScreen> {
                         transform: Matrix4.rotationY(pi),
                         alignment: Alignment.center,
                         child: isFlipped
-                            ? buildCropSelectionCard(title, settingName)
+                            ? buildCropSelectionCard(title, settingName, () {
+                                setState(() {
+                                  flippedCards[settingName] = false;
+                                });
+                              })
                             : buildMainSettingCard(title, settingName,
                                 currentValue, unit, icon, min, max),
                       )
                     : isFlipped
                         ? buildMainSettingCard(title, settingName, currentValue,
                             unit, icon, min, max)
-                        : buildCropSelectionCard(title, settingName),
+                        : buildCropSelectionCard(title, settingName, () {
+                            setState(() {
+                              flippedCards[settingName] = false;
+                            });
+                          }),
               );
             },
           );
         },
         child: isFlipped
-            ? buildCropSelectionCard(title, settingName)
-            : buildMainSettingCard(
-                title, settingName, currentValue, unit, icon, min, max),
+            ? buildCropSelectionCard(title, settingName, () {
+                setState(() {
+                  flippedCards[settingName] = false;
+                });
+              })
+            : buildMainSettingCard(title, settingName, currentValue, unit, icon, min, max),
       ),
     );
   }
@@ -466,51 +477,93 @@ class SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget buildCropSelectionCard(String title, String settingName) {
-    return Card(
-      key: ValueKey(true),
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.deepPurple,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$title для культур',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold),
+  Widget buildCropSelectionCard(String title, String settingName, VoidCallback onConfirm) {
+    Map<String, bool> selectedCrops = {};
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: Colors.deepPurple,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$title для культур',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 200,
+                          child: Scrollbar(
+                            child: ListView(
+                              children: predefinedCrops.keys.map((crop) {
+                                final cropValue = predefinedCrops[crop]![settingName] ?.toInt();
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  child: CheckboxListTile(
+                                    dense: true,
+                                    title: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(crop, style: TextStyle(color: Colors.white)),
+                                        Text('$cropValue', style: TextStyle(color: Colors.white70)),
+                                      ],
+                                    ),
+                                    value: selectedCrops[crop] ?? false,
+                                    activeColor: Colors.green,
+                                    checkColor: Colors.white,
+                                    side: BorderSide(color: Colors.white),
+                                    onChanged: (bool? isChecked) {
+                                      setState(() {
+                                        selectedCrops[crop] = isChecked ?? false;
+                                      });
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      IconButton(
+                        icon: Icon(Icons.check_circle,
+                            color: Colors.green, size: 32),
+                        onPressed: () {
+                          List<int> selectedValues = selectedCrops.entries
+                              .where((entry) => entry.value)
+                              .map((entry) =>  predefinedCrops[entry.key]![settingName] ?.toInt() ?? 0)
+                              .toList();
+
+                          if (selectedValues.isNotEmpty) {
+                            double average = selectedValues.reduce((a, b) => a + b) / selectedValues.length;
+                            settingData[settingName] = average.toInt();
+                          }
+                          onConfirm();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView(
-                children: predefinedCrops.keys.map((crop) {
-                  return ListTile(
-                    title: Text(
-                      crop,
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    trailing: Icon(Icons.check, color: Colors.white),
-                    onTap: () {
-                      setState(() {
-                        settingData[settingName] =
-                            predefinedCrops[crop]![settingName]?.toInt() ??
-                                settingData[settingName];
-                        flippedCards[settingName] =
-                            false; // Переворачиваем обратно
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
