@@ -161,24 +161,23 @@ class SensorStatisticsScreenState extends State<SensorStatisticsScreen> {
     });
   }
 
-void nextPage() {
-  setState(() {
-    int step = isLineChart ? 10 : 1;
-    if (currentPage + step < (isLineChart ? lineChartData.length : barChartData.length)) {
-      currentPage += step;
-    }
-  });
-}
+  void nextPage() {
+    setState(() {
+      int step = isLineChart ? 5 : 1;
+      if (currentPage + (isLineChart ? 10 : 6) < (isLineChart ? lineChartData.length : barChartData.length)) {
+        currentPage += step;
+      }
+    });
+  }
 
-void prevPage() {
-  setState(() {
-    int step = isLineChart ? 10 : 1;
-    if (currentPage - step >= 0) {
-      currentPage -= step;
-    }
-  });
-}
-
+  void prevPage() {
+    setState(() {
+      int step = isLineChart ? 5 : 1;
+      if (currentPage - step >= 0) {
+        currentPage -= step;
+      }
+    });
+  }
 
   Widget buildChart() {
     if (!isDataLoaded) {
@@ -202,8 +201,6 @@ void prevPage() {
     if (isLineChart) {
       List<FlSpot> visibleData =
           lineChartData.skip(currentPage).take(10).toList();
-      List<String> visibleXLabels =
-        xLabels.skip(currentPage).take(10).toList();
       return LineChart(
         LineChartData(
           gridData: FlGridData(
@@ -225,9 +222,8 @@ void prevPage() {
             touchTooltipData: LineTouchTooltipData(
               getTooltipItems: (List<LineBarSpot> touchedSpots) {
                 return touchedSpots.map((spot) {
-                  int index = spot.x.toInt() - currentPage;
                   return LineTooltipItem(
-                    'Время: ${visibleXLabels[index]}\nПоказание: ${spot.y.toStringAsFixed(2)}',
+                    'Время: ${xLabels[spot.x.toInt()]}\nПоказание: ${spot.y.toStringAsFixed(2)}',
                     TextStyle(color: Colors.white),
                   );
                 }).toList();
@@ -242,11 +238,11 @@ void prevPage() {
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
                   int index = value.toInt() - currentPage;
-                  if (index % 10 == 0 || (index + 1) % 10 == 0 || index == visibleData.length - 1) {
+                  if (index >= 0 && index < xLabels.length) {
                     return RotatedBox(
                       quarterTurns: -1,
                       child: Text(
-                        visibleXLabels[index],
+                        xLabels[value.toInt()].split(' ')[1],
                         style: TextStyle(fontSize: 10),
                       ),
                     );
@@ -258,7 +254,7 @@ void prevPage() {
             ),
             topTitles: AxisTitles(
               sideTitles: SideTitles(showTitles: false),
-            )
+            ),
           ),
           minY: minYValue,
           maxY: maxYValue,
